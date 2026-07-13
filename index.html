@@ -139,9 +139,30 @@ input:focus{outline:none; border-color:var(--lime);}
   display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:transparent;
 }
 .check.on{background:var(--lime); border-color:var(--lime); color:#0B0D10;}
-.ex-inputs{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;}
-.ex-inputs label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
-.ex-inputs input{padding:10px; text-align:center; font-weight:700; font-family:'JetBrains Mono',monospace;}
+.sets-list{margin-top:12px; display:flex; flex-direction:column; gap:6px;}
+.set-row{
+  display:flex; align-items:center; gap:6px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:10px;
+  padding:8px 10px;
+}
+.set-num{
+  font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; color:var(--lime-dim);
+  flex:0 0 auto; width:22px;
+}
+.set-row input{
+  padding:8px; text-align:center; font-weight:700; font-family:'JetBrains Mono',monospace;
+  width:100%; min-width:0; flex:1;
+}
+.set-x, .set-unit{font-size:11px; color:var(--muted); flex:0 0 auto;}
+.set-remove{
+  flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:1px solid var(--line);
+  background:transparent; color:var(--red); font-size:13px; cursor:pointer;
+}
+.add-set-btn{
+  margin-top:8px; width:100%; padding:9px; border-radius:10px;
+  border:1px dashed var(--line); background:transparent; color:var(--lime-dim);
+  font-weight:700; font-size:12px; cursor:pointer;
+}
 .tally{display:flex; gap:4px; margin-top:10px;}
 .tally-mark{
   flex:1; height:6px; border-radius:3px; background:var(--surface-2); border:1px solid var(--line);
@@ -661,7 +682,8 @@ function renderExercises(items){
     groups[musc].forEach(ex=>{
       const idx = ROUTINE.indexOf(ex);
       const key = exKey(ex, idx);
-      sessionState[key] = {done:false, series:ex.series, rep:ex.rep, peso:ex.peso};
+      const sets = Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
+      sessionState[key] = {done:false, sets};
       const card = document.createElement('div');
       card.className = 'exercise';
       card.id = 'card_'+key;
@@ -678,33 +700,63 @@ function renderExercises(items){
           </div>
           <div class="check" id="chk_${key}">✓</div>
         </div>
-        <div class="ex-inputs">
-          <div><label>Series</label><input type="number" inputmode="numeric" id="s_${key}" value="${ex.series}"></div>
-          <div><label>Rep.</label><input type="number" inputmode="numeric" id="r_${key}" value="${ex.rep}"></div>
-          <div><label>Peso kg</label><input type="number" inputmode="decimal" id="p_${key}" value="${ex.peso}"></div>
-        </div>
+        <div class="sets-list" id="sets_${key}"></div>
+        <button class="add-set-btn" id="addset_${key}">+ Agregar serie</button>
         <div class="tally" id="tally_${key}"></div>
       `;
       list.appendChild(card);
-      buildTally(key, ex.series);
+      renderSetsList(key);
+      buildTally(key, sets.length);
       document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
-      ['s','r','p'].forEach(p=>{
-        document.getElementById(p+'_'+key).addEventListener('input', ()=>{
-          sessionState[key].series = +document.getElementById('s_'+key).value || 0;
-          sessionState[key].rep = +document.getElementById('r_'+key).value || 0;
-          sessionState[key].peso = +document.getElementById('p_'+key).value || 0;
-          buildTally(key, sessionState[key].series);
-        });
-      });
+      document.getElementById('addset_'+key).onclick = ()=> addSet(key);
     });
   });
 }
 
-function buildTally(key, series){
+function renderSetsList(key){
+  const wrap = document.getElementById('sets_'+key);
+  if(!wrap) return;
+  const sets = sessionState[key].sets;
+  wrap.innerHTML = '';
+  sets.forEach((set, i)=>{
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+      <span class="set-num">S${i+1}</span>
+      <input type="number" inputmode="numeric" class="set-reps" value="${set.reps}">
+      <span class="set-x">rep ×</span>
+      <input type="number" inputmode="decimal" class="set-peso" value="${set.peso}">
+      <span class="set-unit">kg</span>
+      <button class="set-remove" title="Quitar esta serie">🗑</button>
+    `;
+    row.querySelector('.set-reps').addEventListener('input', e=>{ sets[i].reps = +e.target.value || 0; });
+    row.querySelector('.set-peso').addEventListener('input', e=>{ sets[i].peso = +e.target.value || 0; });
+    row.querySelector('.set-remove').onclick = ()=> removeSet(key, i);
+    wrap.appendChild(row);
+  });
+}
+
+function addSet(key){
+  const sets = sessionState[key].sets;
+  const last = sets[sets.length-1] || {reps:0, peso:0};
+  sets.push({reps:last.reps, peso:last.peso});
+  renderSetsList(key);
+  buildTally(key, sets.length);
+}
+
+function removeSet(key, idx){
+  const sets = sessionState[key].sets;
+  if(sets.length <= 1) return; // siempre queda al menos una serie
+  sets.splice(idx, 1);
+  renderSetsList(key);
+  buildTally(key, sets.length);
+}
+
+function buildTally(key, count){
   const t = document.getElementById('tally_'+key);
   if(!t) return;
   t.innerHTML = '';
-  const n = Math.max(1, Math.min(series||1, 8));
+  const n = Math.max(1, Math.min(count||1, 12));
   for(let i=0;i<n;i++){
     const m = document.createElement('div');
     m.className = 'tally-mark' + (sessionState[key].done ? ' filled':'');
@@ -716,7 +768,7 @@ function toggleDone(key){
   sessionState[key].done = !sessionState[key].done;
   document.getElementById('chk_'+key).classList.toggle('on', sessionState[key].done);
   document.getElementById('card_'+key).classList.toggle('done', sessionState[key].done);
-  buildTally(key, sessionState[key].series);
+  buildTally(key, sessionState[key].sets.length);
   updateProgress();
 }
 
@@ -739,7 +791,9 @@ async function saveSession(){
     log.push({
       fecha: now.toISOString(),
       dia: ex.dia, grupo: ex.grupo, musculo: ex.musculo, ejercicio: ex.ejercicio,
-      series: s.series, rep: s.rep, peso: s.peso,
+      series: s.sets.length,
+      sets: s.sets.map(x=>({reps:x.reps, peso:x.peso})),
+      rep: s.sets[0]?.reps || 0, peso: s.sets[0]?.peso || 0,
       estado: s.done ? 'OK' : 'PENDIENTE'
     });
   });
@@ -766,10 +820,13 @@ function showHistory(){
     const d = new Date(e.fecha);
     const item = document.createElement('div');
     item.className = 'hist-item';
+    const statLine = Array.isArray(e.sets) && e.sets.length
+      ? e.sets.map(s=>`${s.reps}×${s.peso}kg`).join('  ·  ')
+      : `${e.series}×${e.rep} · ${e.peso} kg`;
     item.innerHTML = `
       <div class="top"><span>${d.toLocaleDateString('es-AR')} · ${DAY_NAMES[e.dia]||e.dia}</span><span>${e.estado}</span></div>
       <div class="ex">${e.ejercicio}</div>
-      <div class="stat">${e.series}×${e.rep} · ${e.peso} kg</div>
+      <div class="stat">${statLine}</div>
     `;
     wrap.appendChild(item);
   });
