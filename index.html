@@ -313,13 +313,53 @@ select{
 <!-- ============ EDITOR DE RUTINA ============ -->
 <div class="screen" id="editorScreen">
   <div class="day-title">
-    <div class="display">EDITAR RUTINA</div>
-    <div class="grp">Los cambios se ven en todos los dispositivos</div>
+    <div>
+      <div class="display">EDITAR RUTINA</div>
+      <div class="grp">Rutina personal de <span id="editorUserLabel"></span></div>
+    </div>
   </div>
+  <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:16px;">📋 Copiar rutina de otro usuario</button>
   <div id="editorList"></div>
   <div style="height:80px"></div>
   <div class="save-bar">
     <button class="btn btn-ghost btn-block" id="backFromEditorBtn">← Volver a rutina</button>
+  </div>
+</div>
+
+<!-- ============ MODAL COPIAR RUTINA ============ -->
+<div class="modal-bg" id="copyModalBg">
+  <div class="modal">
+    <h3>Copiar rutina</h3>
+    <div class="row">
+      <label class="field-label">Copiar de</label>
+      <select id="copy_sourceUser"></select>
+    </div>
+    <div class="row">
+      <label class="field-label">Qué copiar</label>
+      <select id="copy_sourceDay">
+        <option value="ALL">Toda la semana (reemplaza tu rutina completa)</option>
+        <option value="LUN">Solo Lunes</option>
+        <option value="MAR">Solo Martes</option>
+        <option value="MIE">Solo Miércoles</option>
+        <option value="JUE">Solo Jueves</option>
+        <option value="VIE">Solo Viernes</option>
+      </select>
+    </div>
+    <div class="row" id="copy_targetDayRow" style="display:none;">
+      <label class="field-label">Reemplazar en tu día</label>
+      <select id="copy_targetDay">
+        <option value="LUN">Lunes</option>
+        <option value="MAR">Martes</option>
+        <option value="MIE">Miércoles</option>
+        <option value="JUE">Jueves</option>
+        <option value="VIE">Viernes</option>
+      </select>
+    </div>
+    <p class="hint" id="copy_warnText">Esto reemplaza tu rutina completa actual. No se puede deshacer.</p>
+    <div class="actions">
+      <button class="btn btn-ghost" id="copy_cancelBtn">Cancelar</button>
+      <button class="btn btn-lime" id="copy_confirmBtn">Copiar</button>
+    </div>
   </div>
 </div>
 
@@ -403,7 +443,8 @@ select{
 /* ============================================================
    DATOS BASE — extraídos de RUTINA_LO-1-1-1.xlsx (hoja RUTINA)
    ============================================================ */
-let ROUTINE = [{"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Pectoral Pole Alta 1 Mano", "series": 4, "rep": 8, "peso": 20}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 12, "peso": 40}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexión Tríceps con Mancuernas", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 4, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 44}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 26}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 36}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Banco Inclinado 2 db", "series": 4, "rep": 12, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Alterno 2 db de Pie y Sentado", "series": 4, "rep": 12, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Lunges a aquats", "series": 2, "rep": 10, "peso": 0}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Multipower", "series": 5, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Bulgara", "series": 4, "rep": 10, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Peso Muerto sumo", "series": 4, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Extensión Rodilla Máquina una pierna", "series": 4, "rep": 10, "peso": 28}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Prensa Horizontal", "series": 4, "rep": 10, "peso": 62}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Poleas Bajas", "series": 4, "rep": 10, "peso": 16}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 10, "peso": 42}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 46}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 34}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 42}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps 2 Db Martillo Manos Juntas", "series": 4, "rep": 12, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Polea Baja. Diferentes agarres", "series": 4, "rep": 12, "peso": 36}];
+const DEFAULT_ROUTINE = [{"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Pectoral Pole Alta 1 Mano", "series": 4, "rep": 8, "peso": 20}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 12, "peso": 40}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexión Tríceps con Mancuernas", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 4, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 44}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 26}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 36}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Banco Inclinado 2 db", "series": 4, "rep": 12, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Alterno 2 db de Pie y Sentado", "series": 4, "rep": 12, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Lunges a aquats", "series": 2, "rep": 10, "peso": 0}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Multipower", "series": 5, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Bulgara", "series": 4, "rep": 10, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Peso Muerto sumo", "series": 4, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Extensión Rodilla Máquina una pierna", "series": 4, "rep": 10, "peso": 28}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Prensa Horizontal", "series": 4, "rep": 10, "peso": 62}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Poleas Bajas", "series": 4, "rep": 10, "peso": 16}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 10, "peso": 42}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 46}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 34}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 42}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps 2 Db Martillo Manos Juntas", "series": 4, "rep": 12, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Polea Baja. Diferentes agarres", "series": 4, "rep": 12, "peso": 36}];
+let ROUTINE = [];
 
 function ensureIds(routine){
   routine.forEach(ex=>{ if(!ex._id) ex._id = 'ex_' + Math.random().toString(36).slice(2,9); });
@@ -436,6 +477,37 @@ function loadUsers(){ return JSON.parse(localStorage.getItem(LS_USERS) || '[]');
 function saveUsers(list){ localStorage.setItem(LS_USERS, JSON.stringify(list)); }
 function loadLog(user){ return JSON.parse(localStorage.getItem(LS_LOG(user)) || '[]'); }
 function saveLog(user, entries){ localStorage.setItem(LS_LOG(user), JSON.stringify(entries)); }
+
+async function cloudPullUsers(){
+  if(!CLOUD_AVAILABLE) return null;
+  try{
+    const r = await fetch('/api/users');
+    if(!r.ok) return null;
+    const data = await r.json();
+    return data.users || null;
+  }catch(e){ return null; }
+}
+
+async function cloudPushUser(username){
+  if(!CLOUD_AVAILABLE) return;
+  try{
+    await fetch('/api/users', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username})
+    });
+  }catch(e){}
+}
+
+async function syncUsers(){
+  const local = loadUsers();
+  const cloud = await cloudPullUsers();
+  if(cloud){
+    const merged = Array.from(new Set([...local, ...cloud]));
+    saveUsers(merged);
+    return merged;
+  }
+  return local;
+}
 
 function showSync(msg){
   const b = document.getElementById('syncBadge');
@@ -490,9 +562,9 @@ function exKey(ex, idx){ return `${ex.dia}_${idx}`; }
    ============================================================ */
 function initials(name){ return name.trim().slice(0,2).toUpperCase(); }
 
-function renderUserList(targetId, onPick){
+async function renderUserList(targetId, onPick){
   const el = document.getElementById(targetId);
-  const users = loadUsers();
+  const users = await syncUsers();
   el.innerHTML = '';
   if(users.length === 0){
     el.innerHTML = '<p class="hint">Todavía no hay usuarios. Creá el primero abajo.</p>';
@@ -509,11 +581,12 @@ function renderUserList(targetId, onPick){
   });
 }
 
-function createUser(name){
+async function createUser(name){
   name = name.trim();
   if(!name) return;
   const users = loadUsers();
   if(!users.includes(name)){ users.push(name); saveUsers(users); }
+  await cloudPushUser(name);
   return name;
 }
 
@@ -527,6 +600,8 @@ async function selectUser(user){
 
   const cloudEntries = await cloudPull(user);
   if(cloudEntries) saveLog(user, cloudEntries);
+
+  await loadRoutine(user);
 
   renderDayChips();
   selectDay(currentDay);
@@ -708,33 +783,45 @@ function closeLightbox(){
 }
 
 /* ============================================================
-   PERSISTENCIA DE LA RUTINA (compartida entre todos los usuarios)
+   PERSISTENCIA DE LA RUTINA (cada usuario tiene la suya propia)
    ============================================================ */
-async function loadRoutine(){
+function cloneRoutineWithNewIds(routine){
+  return routine.map(ex => ({...ex, _id: 'ex_' + Math.random().toString(36).slice(2,9)}));
+}
+
+async function loadRoutine(user){
+  const lsKey = 'rutina_routine_' + user;
+
   if(CLOUD_AVAILABLE){
     try{
-      const r = await fetch('/api/routine');
+      const r = await fetch('/api/routine?user=' + encodeURIComponent(user));
       if(r.ok){
         const data = await r.json();
         if(data.routine && data.routine.length){
           ROUTINE = ensureIds(data.routine);
-          localStorage.setItem('rutina_routine_custom', JSON.stringify(ROUTINE));
+          localStorage.setItem(lsKey, JSON.stringify(ROUTINE));
           return;
         }
       }
     }catch(e){}
   }
-  const local = localStorage.getItem('rutina_routine_custom');
+
+  const local = localStorage.getItem(lsKey);
   if(local){
     try{ ROUTINE = ensureIds(JSON.parse(local)); return; }catch(e){}
   }
+
+  // Usuario nuevo sin rutina propia todavía: arranca con una copia de la rutina base
+  ROUTINE = ensureIds(cloneRoutineWithNewIds(DEFAULT_ROUTINE));
+  await persistRoutine(user);
 }
 
-async function persistRoutine(){
-  localStorage.setItem('rutina_routine_custom', JSON.stringify(ROUTINE));
+async function persistRoutine(user){
+  user = user || currentUser;
+  localStorage.setItem('rutina_routine_' + user, JSON.stringify(ROUTINE));
   if(CLOUD_AVAILABLE){
     try{
-      await fetch('/api/routine', {
+      await fetch('/api/routine?user=' + encodeURIComponent(user), {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({routine: ROUTINE})
       });
@@ -743,18 +830,97 @@ async function persistRoutine(){
   }
 }
 
+async function fetchUserRoutine(user){
+  if(CLOUD_AVAILABLE){
+    try{
+      const r = await fetch('/api/routine?user=' + encodeURIComponent(user));
+      if(r.ok){
+        const data = await r.json();
+        if(data.routine) return data.routine;
+      }
+    }catch(e){}
+  }
+  const local = localStorage.getItem('rutina_routine_' + user);
+  if(local){ try{ return JSON.parse(local); }catch(e){} }
+  return [];
+}
+
 /* ============================================================
    EDITOR DE RUTINA
    ============================================================ */
 function showEditor(){
   document.getElementById('entrenoScreen').classList.remove('active');
   document.getElementById('editorScreen').classList.add('active');
+  document.getElementById('editorUserLabel').textContent = currentUser;
   renderEditor();
 }
 function backFromEditor(){
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
   selectDay(currentDay); // refrescar por si hubo cambios
+}
+
+/* ============================================================
+   COPIAR RUTINA DE OTRO USUARIO
+   ============================================================ */
+async function openCopyModal(){
+  const allUsers = await syncUsers();
+  const others = allUsers.filter(u => u !== currentUser);
+  const sel = document.getElementById('copy_sourceUser');
+  sel.innerHTML = '';
+  if(others.length === 0){
+    sel.innerHTML = '<option value="">No hay otros usuarios todavía</option>';
+  } else {
+    others.forEach(u=>{
+      const opt = document.createElement('option');
+      opt.value = u; opt.textContent = u;
+      sel.appendChild(opt);
+    });
+  }
+  document.getElementById('copy_sourceDay').value = 'ALL';
+  document.getElementById('copy_targetDayRow').style.display = 'none';
+  document.getElementById('copy_targetDay').value = currentDay;
+  document.getElementById('copy_warnText').textContent = 'Esto reemplaza tu rutina completa actual. No se puede deshacer.';
+  document.getElementById('copyModalBg').classList.add('show');
+}
+function closeCopyModal(){
+  document.getElementById('copyModalBg').classList.remove('show');
+}
+document.getElementById('copy_sourceDay').addEventListener('change', function(){
+  const isAll = this.value === 'ALL';
+  document.getElementById('copy_targetDayRow').style.display = isAll ? 'none' : 'block';
+  document.getElementById('copy_warnText').textContent = isAll
+    ? 'Esto reemplaza tu rutina completa actual. No se puede deshacer.'
+    : 'Esto reemplaza los ejercicios de ese día en tu rutina. No se puede deshacer.';
+});
+
+async function performCopy(){
+  const srcUser = document.getElementById('copy_sourceUser').value;
+  const srcDay = document.getElementById('copy_sourceDay').value;
+  if(!srcUser){ alert('No hay usuario para copiar.'); return; }
+
+  const srcRoutine = await fetchUserRoutine(srcUser);
+  if(!srcRoutine || srcRoutine.length === 0){
+    alert('Ese usuario todavía no tiene una rutina guardada.');
+    return;
+  }
+
+  if(srcDay === 'ALL'){
+    if(!confirm(`Esto reemplaza TODA tu rutina actual por la de ${srcUser}. ¿Continuar?`)) return;
+    ROUTINE = ensureIds(cloneRoutineWithNewIds(srcRoutine));
+  } else {
+    const targetDay = document.getElementById('copy_targetDay').value;
+    if(!confirm(`Esto reemplaza los ejercicios de ${DAY_NAMES[targetDay]} con los de ${DAY_NAMES[srcDay]} de ${srcUser}. ¿Continuar?`)) return;
+    const dayExercises = srcRoutine
+      .filter(e => e.dia === srcDay)
+      .map(e => ({...e, dia: targetDay, _id: 'ex_' + Math.random().toString(36).slice(2,9)}));
+    ROUTINE = ROUTINE.filter(e => e.dia !== targetDay).concat(dayExercises);
+  }
+
+  await persistRoutine();
+  closeCopyModal();
+  renderEditor();
+  showSync('Rutina copiada ✓');
 }
 
 function renderEditor(){
@@ -942,9 +1108,9 @@ async function deleteExercise(id){
 /* ============================================================
    INIT
    ============================================================ */
-document.getElementById('createUserBtn').onclick = ()=>{
+document.getElementById('createUserBtn').onclick = async ()=>{
   const input = document.getElementById('newUserName');
-  const name = createUser(input.value);
+  const name = await createUser(input.value);
   if(name){ input.value=''; selectUser(name); }
 };
 document.getElementById('newUserName').addEventListener('keydown', e=>{
@@ -955,9 +1121,9 @@ document.getElementById('userPill').onclick = ()=>{
   document.getElementById('userModalBg').classList.add('show');
 };
 document.getElementById('modalCloseBtn').onclick = ()=> document.getElementById('userModalBg').classList.remove('show');
-document.getElementById('modalCreateBtn').onclick = ()=>{
+document.getElementById('modalCreateBtn').onclick = async ()=>{
   const input = document.getElementById('modalNewUser');
-  const name = createUser(input.value);
+  const name = await createUser(input.value);
   if(name){ input.value=''; selectUser(name); }
 };
 document.getElementById('saveSessionBtn').onclick = saveSession;
@@ -965,6 +1131,9 @@ document.getElementById('navHistBtn').onclick = showHistory;
 document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
 document.getElementById('editorNavBtn').onclick = showEditor;
 document.getElementById('backFromEditorBtn').onclick = backFromEditor;
+document.getElementById('openCopyModalBtn').onclick = openCopyModal;
+document.getElementById('copy_cancelBtn').onclick = closeCopyModal;
+document.getElementById('copy_confirmBtn').onclick = performCopy;
 document.getElementById('ef_cancelBtn').onclick = closeExerciseForm;
 document.getElementById('ef_saveBtn').onclick = saveExerciseForm;
 document.getElementById('ef_searchBtn').onclick = searchExerciseImage;
@@ -983,8 +1152,7 @@ document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
 
 (async function init(){
   await cloudPing();
-  await loadRoutine();
-  renderUserList('userList', selectUser);
+  await renderUserList('userList', selectUser);
 })();
 </script>
 </body>
