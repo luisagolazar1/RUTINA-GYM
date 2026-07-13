@@ -204,6 +204,45 @@ input:focus{outline:none; border-color:var(--lime);}
   margin-top:18px; background:var(--surface-2); color:var(--text); border:1px solid var(--line);
   border-radius:10px; padding:10px 20px; font-weight:700; cursor:pointer;
 }
+
+/* Icon button (topbar) */
+.icon-btn{
+  width:38px; height:38px; border-radius:10px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--text); font-size:16px; cursor:pointer;
+}
+
+/* Editor de rutina */
+.editor-day-section{margin-bottom:22px;}
+.editor-day-title{
+  font-family:'Bebas Neue'; font-size:22px; color:var(--lime); letter-spacing:.5px; margin-bottom:8px;
+}
+.editor-row{
+  display:flex; align-items:center; gap:10px;
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:10px; margin-bottom:8px;
+}
+.editor-thumb{width:48px; height:48px; object-fit:cover; border-radius:8px; border:1px solid var(--line); flex:0 0 auto;}
+.editor-thumb.placeholder{background:var(--surface-2);}
+.editor-info{flex:1; min-width:0;}
+.editor-name{font-weight:700; font-size:14px;}
+.editor-meta{color:var(--muted); font-size:11px; margin-top:2px;}
+.editor-btn{
+  width:34px; height:34px; border-radius:8px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--text); font-size:14px; cursor:pointer; flex:0 0 auto;
+}
+.editor-btn.danger{color:var(--red); border-color:var(--red);}
+
+/* Formulario ejercicio */
+.field-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
+select{
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+  border-radius:10px; padding:13px 14px; font-size:15px; font-family:inherit; width:100%;
+}
+.img-results{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+.img-result-thumb{
+  width:64px; height:64px; object-fit:cover; border-radius:8px; border:2px solid var(--line); cursor:pointer;
+}
+.img-result-thumb:active{border-color:var(--lime);}
 </style>
 
 </head>
@@ -231,9 +270,12 @@ input:focus{outline:none; border-color:var(--lime);}
     <div class="brand">
       <span class="display">RUTINA</span>
     </div>
-    <div class="userpill" id="userPill">
-      <div class="avatar" id="pillAvatar">?</div>
-      <span id="pillName">Usuario</span>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="icon-btn" id="editorNavBtn" title="Editar rutina">✎</button>
+      <div class="userpill" id="userPill">
+        <div class="avatar" id="pillAvatar">?</div>
+        <span id="pillName">Usuario</span>
+      </div>
     </div>
   </div>
 
@@ -268,6 +310,63 @@ input:focus{outline:none; border-color:var(--lime);}
   </div>
 </div>
 
+<!-- ============ EDITOR DE RUTINA ============ -->
+<div class="screen" id="editorScreen">
+  <div class="day-title">
+    <div class="display">EDITAR RUTINA</div>
+    <div class="grp">Los cambios se ven en todos los dispositivos</div>
+  </div>
+  <div id="editorList"></div>
+  <div style="height:80px"></div>
+  <div class="save-bar">
+    <button class="btn btn-ghost btn-block" id="backFromEditorBtn">← Volver a rutina</button>
+  </div>
+</div>
+
+<!-- ============ MODAL FORMULARIO EJERCICIO ============ -->
+<div class="modal-bg" id="exerciseFormBg">
+  <div class="modal" style="max-height:85vh; overflow-y:auto;">
+    <h3 id="exerciseFormTitle">Editar ejercicio</h3>
+    <div class="row">
+      <label class="field-label">Día</label>
+      <select id="ef_dia">
+        <option value="LUN">Lunes</option>
+        <option value="MAR">Martes</option>
+        <option value="MIE">Miércoles</option>
+        <option value="JUE">Jueves</option>
+        <option value="VIE">Viernes</option>
+      </select>
+    </div>
+    <div class="row">
+      <label class="field-label">Grupo muscular</label>
+      <input type="text" id="ef_musculo" placeholder="Ej: 07.Triceps">
+    </div>
+    <div class="row">
+      <label class="field-label">Nombre del ejercicio</label>
+      <input type="text" id="ef_ejercicio" placeholder="Ej: Flexiones tríceps">
+    </div>
+    <div class="row" style="display:flex; gap:8px;">
+      <div style="flex:1"><label class="field-label">Series</label><input type="number" id="ef_series"></div>
+      <div style="flex:1"><label class="field-label">Rep.</label><input type="number" id="ef_rep"></div>
+      <div style="flex:1"><label class="field-label">Peso kg</label><input type="number" id="ef_peso"></div>
+    </div>
+    <div class="row">
+      <label class="field-label">Foto del ejercicio (ExerciseDB)</label>
+      <div id="ef_currentImgWrap" style="margin-bottom:8px;"></div>
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="ef_imgSearch" placeholder="Buscar en inglés: lat pulldown">
+        <button class="btn btn-ghost" id="ef_searchBtn" style="flex:0 0 auto;">Buscar</button>
+      </div>
+      <div class="img-results" id="ef_imgResults"></div>
+      <p class="hint">Buscá el movimiento en inglés (ej: "hammer curl", "leg press", "bicep curl") y tocá la miniatura correcta.</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="ef_cancelBtn">Cancelar</button>
+      <button class="btn btn-lime" id="ef_saveBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL USUARIO ============ -->
 <div class="modal-bg" id="userModalBg">
   <div class="modal">
@@ -288,7 +387,7 @@ input:focus{outline:none; border-color:var(--lime);}
   <div class="lightbox-content">
     <img id="lightboxImg" src="" alt="">
     <div class="cap" id="lightboxCap"></div>
-    <div class="credit">Imagen de referencia técnica · free-exercise-db (dominio público)</div>
+    <div class="credit" id="lightboxCredit">Imagen de referencia técnica</div>
     <button class="lightbox-close" onclick="closeLightbox()">Cerrar</button>
   </div>
 </div>
@@ -297,7 +396,13 @@ input:focus{outline:none; border-color:var(--lime);}
 /* ============================================================
    DATOS BASE — extraídos de RUTINA_LO-1-1-1.xlsx (hoja RUTINA)
    ============================================================ */
-const ROUTINE = [{"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Pectoral Pole Alta 1 Mano", "series": 4, "rep": 8, "peso": 20}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 12, "peso": 40}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexión Tríceps con Mancuernas", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 4, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 44}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 26}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 36}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Banco Inclinado 2 db", "series": 4, "rep": 12, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Alterno 2 db de Pie y Sentado", "series": 4, "rep": 12, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Lunges a aquats", "series": 2, "rep": 10, "peso": 0}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Multipower", "series": 5, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Bulgara", "series": 4, "rep": 10, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Peso Muerto sumo", "series": 4, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Extensión Rodilla Máquina una pierna", "series": 4, "rep": 10, "peso": 28}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Prensa Horizontal", "series": 4, "rep": 10, "peso": 62}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Poleas Bajas", "series": 4, "rep": 10, "peso": 16}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 10, "peso": 42}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 46}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 34}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 42}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps 2 Db Martillo Manos Juntas", "series": 4, "rep": 12, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Polea Baja. Diferentes agarres", "series": 4, "rep": 12, "peso": 36}];
+let ROUTINE = [{"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Pectoral Pole Alta 1 Mano", "series": 4, "rep": 8, "peso": 20}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 12, "peso": 40}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexión Tríceps con Mancuernas", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 4, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 44}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 26}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 36}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Banco Inclinado 2 db", "series": 4, "rep": 12, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Alterno 2 db de Pie y Sentado", "series": 4, "rep": 12, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Lunges a aquats", "series": 2, "rep": 10, "peso": 0}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Multipower", "series": 5, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Bulgara", "series": 4, "rep": 10, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Peso Muerto sumo", "series": 4, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Extensión Rodilla Máquina una pierna", "series": 4, "rep": 10, "peso": 28}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Prensa Horizontal", "series": 4, "rep": 10, "peso": 62}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Poleas Bajas", "series": 4, "rep": 10, "peso": 16}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 10, "peso": 42}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 46}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 34}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 42}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps 2 Db Martillo Manos Juntas", "series": 4, "rep": 12, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Polea Baja. Diferentes agarres", "series": 4, "rep": 12, "peso": 36}];
+
+function ensureIds(routine){
+  routine.forEach(ex=>{ if(!ex._id) ex._id = 'ex_' + Math.random().toString(36).slice(2,9); });
+  return routine;
+}
+ensureIds(ROUTINE);
 
 const DAY_NAMES = {LUN:'Lunes', MAR:'Martes', MIE:'Miércoles', JUE:'Jueves', VIE:'Viernes'};
 const DAY_ORDER = ['LUN','MAR','MIE','JUE','VIE'];
@@ -305,8 +410,9 @@ const DAY_ORDER = ['LUN','MAR','MIE','JUE','VIE'];
 /* Mapeo ejercicio -> id en free-exercise-db (imágenes libres de referencia técnica) */
 const EX_IMAGE_ID = {"Flexiones tríceps": "Push-Ups_-_Close_Triceps_Position", "Press Banca Superior Barra libre": "Barbell_Incline_Bench_Press_-_Medium_Grip", "Press Piso Plano": "Floor_Press", "Apertura Pectoral Pole Alta 1 Mano": "Single-Arm_Cable_Crossover", "Press Hombro Maquina sentado": "Dumbbell_Shoulder_Press", "Elevación Frontal y Laterales": "Side_Lateral_Raise", "Flexión Tríceps con Mancuernas": "Lying_Dumbbell_Tricep_Extension", "Tríceps Polea Alta 1 Mano  Oblicuo": "Standing_Low-Pulley_One-Arm_Triceps_Extension", "Remo Mancuernas Libre Prono": "One-Arm_Dumbbell_Row", "Bíceps Barra Z de Pie": "EZ-Bar_Curl", "Jalon dorsal": "Wide-Grip_Lat_Pulldown", "Jalon curl concentrado bicep": "Concentration_Curls", "Remo Horizontal Maquina Bilateral": "Seated_Cable_Rows", "Remo polea lat push down": "Straight-Arm_Pulldown", "Bíceps Banco Inclinado 2 db": "Incline_Dumbbell_Curl", "Bíceps Alterno 2 db de Pie y Sentado": "Alternate_Incline_Dumbbell_Curl", "Lunges a aquats": "Dumbbell_Lunges", "Sentadilla Multipower": "Smith_Machine_Squat", "Sentadilla Bulgara": "Split_Squat_with_Dumbbells", "Peso Muerto sumo": "Sumo_Deadlift", "Extensión Rodilla Máquina una pierna": "Leg_Extensions", "Prensa Horizontal": "Leg_Press", "Apertura Poleas Bajas": "Cable_Crossover", "Bíceps 2 Db Martillo Manos Juntas": "Alternate_Hammer_Curl", "Bíceps Polea Baja. Diferentes agarres": "Standing_Biceps_Cable_Curl"};
 const IMG_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
-function exerciseImageUrl(nombreEjercicio){
-  const id = EX_IMAGE_ID[nombreEjercicio];
+function exerciseImageUrl(ex){
+  if(ex.imagen) return ex.imagen;
+  const id = EX_IMAGE_ID[ex.ejercicio];
   return id ? `${IMG_BASE}${id}/0.jpg` : null;
 }
 
@@ -466,7 +572,7 @@ function renderExercises(items){
       const card = document.createElement('div');
       card.className = 'exercise';
       card.id = 'card_'+key;
-      const imgUrl = exerciseImageUrl(ex.ejercicio);
+      const imgUrl = exerciseImageUrl(ex);
       const imgHtml = imgUrl
         ? `<img class="ex-photo" src="${imgUrl}" alt="Demostración: ${ex.ejercicio}" loading="lazy" onclick="openLightbox('${imgUrl}','${ex.ejercicio.replace(/'/g,"\\'")}')" onerror="this.closest('.ex-photo-wrap').style.display='none'">`
         : '';
@@ -594,6 +700,183 @@ function closeLightbox(){
   document.getElementById('lightboxBg').classList.remove('show');
 }
 
+/* ============================================================
+   PERSISTENCIA DE LA RUTINA (compartida entre todos los usuarios)
+   ============================================================ */
+async function loadRoutine(){
+  if(CLOUD_AVAILABLE){
+    try{
+      const r = await fetch('/api/routine');
+      if(r.ok){
+        const data = await r.json();
+        if(data.routine && data.routine.length){
+          ROUTINE = ensureIds(data.routine);
+          localStorage.setItem('rutina_routine_custom', JSON.stringify(ROUTINE));
+          return;
+        }
+      }
+    }catch(e){}
+  }
+  const local = localStorage.getItem('rutina_routine_custom');
+  if(local){
+    try{ ROUTINE = ensureIds(JSON.parse(local)); return; }catch(e){}
+  }
+}
+
+async function persistRoutine(){
+  localStorage.setItem('rutina_routine_custom', JSON.stringify(ROUTINE));
+  if(CLOUD_AVAILABLE){
+    try{
+      await fetch('/api/routine', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({routine: ROUTINE})
+      });
+      showSync('Rutina actualizada ✓');
+    }catch(e){ showSync('Guardado local (sin conexión)'); }
+  }
+}
+
+/* ============================================================
+   EDITOR DE RUTINA
+   ============================================================ */
+function showEditor(){
+  document.getElementById('entrenoScreen').classList.remove('active');
+  document.getElementById('editorScreen').classList.add('active');
+  renderEditor();
+}
+function backFromEditor(){
+  document.getElementById('editorScreen').classList.remove('active');
+  document.getElementById('entrenoScreen').classList.add('active');
+  selectDay(currentDay); // refrescar por si hubo cambios
+}
+
+function renderEditor(){
+  const list = document.getElementById('editorList');
+  list.innerHTML = '';
+  DAY_ORDER.forEach(day=>{
+    const items = ROUTINE.filter(e=>e.dia===day);
+    const sec = document.createElement('div');
+    sec.className = 'editor-day-section';
+    const title = document.createElement('div');
+    title.className = 'editor-day-title';
+    title.textContent = DAY_NAMES[day];
+    sec.appendChild(title);
+    items.forEach(ex=>{
+      const img = exerciseImageUrl(ex);
+      const row = document.createElement('div');
+      row.className = 'editor-row';
+      row.innerHTML = `
+        ${img ? `<img class="editor-thumb" src="${img}">` : '<div class="editor-thumb placeholder"></div>'}
+        <div class="editor-info">
+          <div class="editor-name">${ex.ejercicio}</div>
+          <div class="editor-meta">${ex.musculo} · ${ex.series}×${ex.rep} · ${ex.peso}kg</div>
+        </div>
+        <button class="editor-btn" data-act="edit">✎</button>
+        <button class="editor-btn danger" data-act="del">🗑</button>
+      `;
+      row.querySelector('[data-act="edit"]').onclick = ()=> openExerciseForm(ex._id);
+      row.querySelector('[data-act="del"]').onclick = ()=> deleteExercise(ex._id);
+      sec.appendChild(row);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 'btn btn-ghost btn-block';
+    addBtn.style.marginTop = '8px';
+    addBtn.textContent = '+ Agregar ejercicio a ' + DAY_NAMES[day];
+    addBtn.onclick = ()=> openExerciseForm(null, day);
+    sec.appendChild(addBtn);
+    list.appendChild(sec);
+  });
+}
+
+let editingExerciseId = null;
+let editingExerciseImg = null;
+
+function openExerciseForm(id, presetDay){
+  editingExerciseId = id;
+  const ex = id ? ROUTINE.find(e=>e._id===id) : null;
+  document.getElementById('exerciseFormTitle').textContent = ex ? 'Editar ejercicio' : 'Nuevo ejercicio';
+  document.getElementById('ef_dia').value = ex ? ex.dia : (presetDay || 'LUN');
+  document.getElementById('ef_musculo').value = ex ? ex.musculo : '';
+  document.getElementById('ef_ejercicio').value = ex ? ex.ejercicio : '';
+  document.getElementById('ef_series').value = ex ? ex.series : 3;
+  document.getElementById('ef_rep').value = ex ? ex.rep : 12;
+  document.getElementById('ef_peso').value = ex ? ex.peso : 0;
+  editingExerciseImg = ex ? exerciseImageUrl(ex) : null;
+  renderCurrentImg();
+  document.getElementById('ef_imgResults').innerHTML = '';
+  document.getElementById('ef_imgSearch').value = '';
+  document.getElementById('exerciseFormBg').classList.add('show');
+}
+function closeExerciseForm(){
+  document.getElementById('exerciseFormBg').classList.remove('show');
+}
+function renderCurrentImg(){
+  const wrap = document.getElementById('ef_currentImgWrap');
+  wrap.innerHTML = editingExerciseImg
+    ? `<img src="${editingExerciseImg}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">`
+    : '<div class="hint">Todavía sin foto.</div>';
+}
+
+async function searchExerciseImage(){
+  const q = document.getElementById('ef_imgSearch').value.trim();
+  const resWrap = document.getElementById('ef_imgResults');
+  if(!q) return;
+  resWrap.innerHTML = '<div class="hint">Buscando…</div>';
+  try{
+    const r = await fetch('/api/exercise-search?q=' + encodeURIComponent(q));
+    const data = await r.json();
+    const results = data.results || [];
+    if(results.length === 0){
+      resWrap.innerHTML = '<div class="hint">Sin resultados. Probá otro término en inglés (ej: "curl", "row", "squat").</div>';
+      return;
+    }
+    resWrap.innerHTML = '';
+    results.forEach(it=>{
+      const el = document.createElement('img');
+      el.src = it.gifUrl;
+      el.className = 'img-result-thumb';
+      el.title = it.name;
+      el.loading = 'lazy';
+      el.onclick = ()=>{ editingExerciseImg = it.gifUrl; renderCurrentImg(); };
+      resWrap.appendChild(el);
+    });
+  }catch(e){
+    resWrap.innerHTML = '<div class="hint">Error buscando. Probá de nuevo.</div>';
+  }
+}
+
+async function saveExerciseForm(){
+  const dia = document.getElementById('ef_dia').value;
+  const musculo = document.getElementById('ef_musculo').value.trim() || 'General';
+  const ejercicio = document.getElementById('ef_ejercicio').value.trim();
+  const series = +document.getElementById('ef_series').value || 0;
+  const rep = +document.getElementById('ef_rep').value || 0;
+  const peso = +document.getElementById('ef_peso').value || 0;
+  if(!ejercicio){ alert('Poné el nombre del ejercicio.'); return; }
+  if(editingExerciseId){
+    const ex = ROUTINE.find(e=>e._id===editingExerciseId);
+    ex.dia = dia; ex.musculo = musculo; ex.grupo = ex.grupo || musculo;
+    ex.ejercicio = ejercicio; ex.series = series; ex.rep = rep; ex.peso = peso;
+    if(editingExerciseImg) ex.imagen = editingExerciseImg;
+  } else {
+    ROUTINE.push({
+      _id: 'ex_' + Math.random().toString(36).slice(2,9),
+      dia, grupo: musculo, musculo, ejercicio, series, rep, peso,
+      imagen: editingExerciseImg || undefined
+    });
+  }
+  await persistRoutine();
+  closeExerciseForm();
+  renderEditor();
+}
+
+async function deleteExercise(id){
+  if(!confirm('¿Borrar este ejercicio de la rutina?')) return;
+  ROUTINE = ROUTINE.filter(e=>e._id !== id);
+  await persistRoutine();
+  renderEditor();
+}
+
 
 /* ============================================================
    INIT
@@ -619,9 +902,18 @@ document.getElementById('modalCreateBtn').onclick = ()=>{
 document.getElementById('saveSessionBtn').onclick = saveSession;
 document.getElementById('navHistBtn').onclick = showHistory;
 document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
+document.getElementById('editorNavBtn').onclick = showEditor;
+document.getElementById('backFromEditorBtn').onclick = backFromEditor;
+document.getElementById('ef_cancelBtn').onclick = closeExerciseForm;
+document.getElementById('ef_saveBtn').onclick = saveExerciseForm;
+document.getElementById('ef_searchBtn').onclick = searchExerciseImage;
+document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); searchExerciseImage(); }
+});
 
 (async function init(){
   await cloudPing();
+  await loadRoutine();
   renderUserList('userList', selectUser);
 })();
 </script>
