@@ -115,6 +115,11 @@ input:focus{outline:none; border-color:var(--lime);}
 }
 .exercise.done{border-color:var(--lime-dim); background:linear-gradient(180deg,rgba(200,255,61,.06),transparent);}
 .ex-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.ex-photo-wrap{flex:0 0 auto;}
+.ex-photo{
+  width:64px; height:64px; object-fit:cover; border-radius:10px;
+  border:1px solid var(--line); cursor:pointer; background:var(--surface-2);
+}
 .ex-name{font-weight:700; font-size:15px; line-height:1.25;}
 .ex-target{color:var(--muted); font-size:12px; margin-top:3px;}
 .check{
@@ -184,7 +189,23 @@ input:focus{outline:none; border-color:var(--lime);}
 .modal .actions{display:flex; gap:10px; margin-top:16px;}
 .modal .actions .btn{flex:1;}
 .hint{font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5;}
+
+/* Lightbox de foto de ejercicio */
+.lightbox-bg{
+  position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:60; display:none;
+  align-items:center; justify-content:center; padding:24px;
+}
+.lightbox-bg.show{display:flex;}
+.lightbox-content{max-width:480px; width:100%; text-align:center;}
+.lightbox-content img{width:100%; border-radius:16px; border:1px solid var(--line);}
+.lightbox-content .cap{margin-top:14px; font-weight:700; font-size:16px;}
+.lightbox-content .credit{margin-top:4px; color:var(--muted); font-size:11px;}
+.lightbox-close{
+  margin-top:18px; background:var(--surface-2); color:var(--text); border:1px solid var(--line);
+  border-radius:10px; padding:10px 20px; font-weight:700; cursor:pointer;
+}
 </style>
+
 </head>
 <body>
 
@@ -262,6 +283,16 @@ input:focus{outline:none; border-color:var(--lime);}
   </div>
 </div>
 
+<!-- ============ LIGHTBOX FOTO EJERCICIO ============ -->
+<div class="lightbox-bg" id="lightboxBg" onclick="if(event.target===this) closeLightbox()">
+  <div class="lightbox-content">
+    <img id="lightboxImg" src="" alt="">
+    <div class="cap" id="lightboxCap"></div>
+    <div class="credit">Imagen de referencia técnica · free-exercise-db (dominio público)</div>
+    <button class="lightbox-close" onclick="closeLightbox()">Cerrar</button>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    DATOS BASE — extraídos de RUTINA_LO-1-1-1.xlsx (hoja RUTINA)
@@ -270,6 +301,14 @@ const ROUTINE = [{"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", 
 
 const DAY_NAMES = {LUN:'Lunes', MAR:'Martes', MIE:'Miércoles', JUE:'Jueves', VIE:'Viernes'};
 const DAY_ORDER = ['LUN','MAR','MIE','JUE','VIE'];
+
+/* Mapeo ejercicio -> id en free-exercise-db (imágenes libres de referencia técnica) */
+const EX_IMAGE_ID = {"Flexiones tríceps": "Push-Ups_-_Close_Triceps_Position", "Press Banca Superior Barra libre": "Barbell_Incline_Bench_Press_-_Medium_Grip", "Press Piso Plano": "Floor_Press", "Apertura Pectoral Pole Alta 1 Mano": "Single-Arm_Cable_Crossover", "Press Hombro Maquina sentado": "Dumbbell_Shoulder_Press", "Elevación Frontal y Laterales": "Side_Lateral_Raise", "Flexión Tríceps con Mancuernas": "Lying_Dumbbell_Tricep_Extension", "Tríceps Polea Alta 1 Mano  Oblicuo": "Standing_Low-Pulley_One-Arm_Triceps_Extension", "Remo Mancuernas Libre Prono": "One-Arm_Dumbbell_Row", "Bíceps Barra Z de Pie": "EZ-Bar_Curl", "Jalon dorsal": "Wide-Grip_Lat_Pulldown", "Jalon curl concentrado bicep": "Concentration_Curls", "Remo Horizontal Maquina Bilateral": "Seated_Cable_Rows", "Remo polea lat push down": "Straight-Arm_Pulldown", "Bíceps Banco Inclinado 2 db": "Incline_Dumbbell_Curl", "Bíceps Alterno 2 db de Pie y Sentado": "Alternate_Incline_Dumbbell_Curl", "Lunges a aquats": "Dumbbell_Lunges", "Sentadilla Multipower": "Smith_Machine_Squat", "Sentadilla Bulgara": "Split_Squat_with_Dumbbells", "Peso Muerto sumo": "Sumo_Deadlift", "Extensión Rodilla Máquina una pierna": "Leg_Extensions", "Prensa Horizontal": "Leg_Press", "Apertura Poleas Bajas": "Cable_Crossover", "Bíceps 2 Db Martillo Manos Juntas": "Alternate_Hammer_Curl", "Bíceps Polea Baja. Diferentes agarres": "Standing_Biceps_Cable_Curl"};
+const IMG_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+function exerciseImageUrl(nombreEjercicio){
+  const id = EX_IMAGE_ID[nombreEjercicio];
+  return id ? `${IMG_BASE}${id}/0.jpg` : null;
+}
 
 /* ============================================================
    ALMACENAMIENTO — localStorage + sync opcional en la nube
@@ -427,9 +466,14 @@ function renderExercises(items){
       const card = document.createElement('div');
       card.className = 'exercise';
       card.id = 'card_'+key;
+      const imgUrl = exerciseImageUrl(ex.ejercicio);
+      const imgHtml = imgUrl
+        ? `<img class="ex-photo" src="${imgUrl}" alt="Demostración: ${ex.ejercicio}" loading="lazy" onclick="openLightbox('${imgUrl}','${ex.ejercicio.replace(/'/g,"\\'")}')" onerror="this.closest('.ex-photo-wrap').style.display='none'">`
+        : '';
       card.innerHTML = `
         <div class="ex-head">
-          <div>
+          ${imgUrl ? `<div class="ex-photo-wrap">${imgHtml}</div>` : ''}
+          <div style="flex:1">
             <div class="ex-name">${ex.ejercicio}</div>
             <div class="ex-target">Objetivo: ${ex.series} series × ${ex.rep} rep · ${ex.peso} kg</div>
           </div>
@@ -536,6 +580,20 @@ function backToEntreno(){
   document.getElementById('histScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
 }
+
+/* ============================================================
+   LIGHTBOX FOTO EJERCICIO
+   ============================================================ */
+function openLightbox(url, nombre){
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightboxImg').alt = 'Demostración: ' + nombre;
+  document.getElementById('lightboxCap').textContent = nombre;
+  document.getElementById('lightboxBg').classList.add('show');
+}
+function closeLightbox(){
+  document.getElementById('lightboxBg').classList.remove('show');
+}
+
 
 /* ============================================================
    INIT
