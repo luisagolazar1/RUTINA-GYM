@@ -1,9 +1,9 @@
-// Lista compartida de usuarios de la app (para que un usuario creado en
-// cualquier dispositivo aparezca en el login de todos los demás).
-// GET  /api/users -> { users: [...] }
-// POST /api/users  body { username } -> agrega si no existe, devuelve { users: [...] }
+// Lista de usuarios registrados (para el login y para "copiar rutina de otro usuario").
+// GET  /api/users -> { users: [{email, name, picture}, ...] }   (lectura abierta)
+// POST /api/users -> registra al usuario autenticado por el token de Google (no confía en el body)
 
 import { kv } from '@vercel/kv';
+import { verifyGoogleToken } from '../lib/verify.js';
 
 const USERS_KEY = 'rutina:_usuarios';
 
@@ -14,15 +14,17 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const username = (body?.username || '').trim();
-    if (!username) return res.status(400).json({ error: 'Falta username' });
+    const auth = await verifyGoogleToken(req);
+    if (!auth) return res.status(401).json({ error: 'No autenticado' });
 
     const users = (await kv.get(USERS_KEY)) || [];
-    if (!users.includes(username)) {
-      users.push(username);
-      await kv.set(USERS_KEY, users);
+    const idx = users.findIndex(u => u.email === auth.email);
+    if (idx === -1) {
+      users.push({ email: auth.email, name: auth.name, picture: auth.picture });
+    } else {
+      users[idx] = { email: auth.email, name: auth.name, picture: auth.picture };
     }
+    await kv.set(USERS_KEY, users);
     return res.status(200).json({ users });
   }
 

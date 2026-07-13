@@ -1,12 +1,12 @@
-// Endpoint de sincronización en la nube.
-// Usa Vercel KV (Redis administrado por Vercel/Upstash).
-// GET  /api/data?user=NOMBRE  -> devuelve { entries: [...] }
-// POST /api/data?user=NOMBRE  body { entries: [...] } -> guarda
+// Endpoint de sincronización de historial de entrenamiento (por usuario).
+// GET  /api/data?user=email  -> devuelve { entries: [...] }   (lectura abierta)
+// POST /api/data?user=email  body { entries: [...] } -> requiere ser ese usuario, o admin
 
 import { kv } from '@vercel/kv';
+import { verifyGoogleToken, ADMIN_EMAIL } from '../lib/verify.js';
 
 export default async function handler(req, res) {
-  const user = (req.query.user || '').trim();
+  const user = (req.query.user || '').trim().toLowerCase();
   if (!user) return res.status(400).json({ error: 'Falta parámetro user' });
 
   const key = `rutina:${user}`;
@@ -18,6 +18,11 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
+    const auth = await verifyGoogleToken(req);
+    if (!auth) return res.status(401).json({ error: 'No autenticado' });
+    if (auth.email !== user && auth.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'No autorizado para editar el historial de otro usuario' });
+    }
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const entries = Array.isArray(body?.entries) ? body.entries : [];
     await kv.set(key, entries);

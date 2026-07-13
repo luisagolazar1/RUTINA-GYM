@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#0B0D10;
@@ -288,11 +289,8 @@ select{
   <div class="login-hero">
     <p>Registro de entrenamiento · 5 días</p>
   </div>
-  <div class="userlist" id="userList"></div>
-  <div class="newuser">
-    <input type="text" id="newUserName" placeholder="Nombre de usuario nuevo">
-    <button class="btn btn-lime" id="createUserBtn">Crear</button>
-  </div>
+  <div id="googleSignInBtn" style="display:flex; justify-content:center; margin-bottom:14px;"></div>
+  <p class="hint" style="text-align:center;">Iniciá sesión con tu cuenta de Google para guardar tu rutina y tu progreso.</p>
   <p class="hint" id="cloudStatusHint" style="text-align:center; margin-top:22px;"></p>
 </div>
 
@@ -349,6 +347,10 @@ select{
       <div class="display">EDITAR RUTINA</div>
       <div class="grp">Rutina personal de <span id="editorUserLabel"></span></div>
     </div>
+  </div>
+  <div class="row" id="adminEditRow" style="display:none;">
+    <label class="field-label">🛡️ Modo administrador: editar la rutina de</label>
+    <select id="adminEditTarget"></select>
   </div>
   <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:16px;">📋 Copiar rutina de otro usuario</button>
   <div id="editorList"></div>
@@ -446,17 +448,20 @@ select{
   </div>
 </div>
 
-<!-- ============ MODAL USUARIO ============ -->
+<!-- ============ MODAL CUENTA ============ -->
 <div class="modal-bg" id="userModalBg">
   <div class="modal">
-    <h3>Cambiar usuario</h3>
-    <div id="modalUserList" class="userlist"></div>
-    <div class="row">
-      <input type="text" id="modalNewUser" placeholder="Nombre de usuario nuevo">
+    <h3>Tu cuenta</h3>
+    <div class="row" style="display:flex; align-items:center; gap:12px;">
+      <div class="avatar" id="modalAvatar" style="width:44px;height:44px;font-size:16px;">?</div>
+      <div>
+        <div style="font-weight:700;" id="modalUserName">Usuario</div>
+        <div class="hint" id="modalUserEmail" style="margin-top:0;">email</div>
+      </div>
     </div>
     <div class="actions">
       <button class="btn btn-ghost" id="modalCloseBtn">Cerrar</button>
-      <button class="btn btn-lime" id="modalCreateBtn">Crear</button>
+      <button class="btn btn-ghost" id="signOutBtn" style="color:var(--red); border-color:var(--red);">Cerrar sesión</button>
     </div>
   </div>
 </div>
@@ -501,45 +506,11 @@ function exerciseImageUrl(ex){
    Si existe /api/data (desplegado en Vercel) se sincroniza sólo.
    Si no hay red o no está desplegado, funciona 100% local.
    ============================================================ */
-const LS_USERS = 'rutina_users';
 const LS_LOG = u => `rutina_log_${u}`;
 let CLOUD_AVAILABLE = false;
 
-function loadUsers(){ return JSON.parse(localStorage.getItem(LS_USERS) || '[]'); }
-function saveUsers(list){ localStorage.setItem(LS_USERS, JSON.stringify(list)); }
 function loadLog(user){ return JSON.parse(localStorage.getItem(LS_LOG(user)) || '[]'); }
 function saveLog(user, entries){ localStorage.setItem(LS_LOG(user), JSON.stringify(entries)); }
-
-async function cloudPullUsers(){
-  if(!CLOUD_AVAILABLE) return null;
-  try{
-    const r = await fetch('/api/users');
-    if(!r.ok) return null;
-    const data = await r.json();
-    return data.users || null;
-  }catch(e){ return null; }
-}
-
-async function cloudPushUser(username){
-  if(!CLOUD_AVAILABLE) return;
-  try{
-    await fetch('/api/users', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username})
-    });
-  }catch(e){}
-}
-
-async function syncUsers(){
-  const local = loadUsers();
-  const cloud = await cloudPullUsers();
-  if(cloud){
-    const merged = Array.from(new Set([...local, ...cloud]));
-    saveUsers(merged);
-    return merged;
-  }
-  return local;
-}
 
 function showSync(msg){
   const b = document.getElementById('syncBadge');
@@ -573,7 +544,7 @@ async function cloudPush(user, entries){
   try{
     showSync('Sincronizando…');
     await fetch('/api/data?user=' + encodeURIComponent(user), {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST', headers:{'Content-Type':'application/json', ...authHeader()},
       body: JSON.stringify({entries})
     });
     showSync('Sincronizado ✓');
@@ -581,59 +552,121 @@ async function cloudPush(user, entries){
 }
 
 /* ============================================================
-   ESTADO
+   AUTENTICACIÓN — Iniciar sesión con Google
    ============================================================ */
-let currentUser = null;
-let currentDay = DAY_ORDER[new Date().getDay()===0?0:Math.min(new Date().getDay()-1,4)];
-let sessionState = {}; // { exerciseKey: {done, series, rep, peso} }
+// ⚠️ Reemplazar por el Client ID real generado en Google Cloud Console.
+// Debe coincidir exactamente con el valor en lib/verify.js del servidor.
+const GOOGLE_CLIENT_ID = 'TU_GOOGLE_CLIENT_ID_AQUI.apps.googleusercontent.com';
+const ADMIN_EMAIL = 'luisagolazar1@gmail.com';
 
-function exKey(ex, idx){ return `${ex.dia}_${idx}`; }
+let currentUser = null;       // email (clave interna)
+let currentUserName = '';
+let currentUserPicture = '';
+let googleIdToken = null;     // JWT crudo, se manda en cada escritura
 
-/* ============================================================
-   LOGIN / USUARIOS
-   ============================================================ */
-function initials(name){ return name.trim().slice(0,2).toUpperCase(); }
+function authHeader(){
+  return googleIdToken ? {'Authorization': 'Bearer ' + googleIdToken} : {};
+}
+function isAdmin(){ return currentUser === ADMIN_EMAIL; }
 
-async function renderUserList(targetId, onPick){
-  const el = document.getElementById(targetId);
-  const users = await syncUsers();
-  el.innerHTML = '';
-  if(users.length === 0){
-    el.innerHTML = '<p class="hint">Todavía no hay usuarios. Creá el primero abajo.</p>';
+function decodeJwtPayload(jwt){
+  try{
+    const base64 = jwt.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    const json = decodeURIComponent(atob(base64).split('').map(c=>
+      '%' + c.charCodeAt(0).toString(16).padStart(2,'0')
+    ).join(''));
+    return JSON.parse(json);
+  }catch(e){ return {}; }
+}
+
+async function handleGoogleCredential(response){
+  googleIdToken = response.credential;
+  const payload = decodeJwtPayload(googleIdToken);
+  currentUser = (payload.email || '').toLowerCase();
+  currentUserName = payload.name || currentUser;
+  currentUserPicture = payload.picture || '';
+
+  // Registrar/actualizar el usuario en la nube (el servidor confía sólo en el token, no en esto)
+  try{
+    await fetch('/api/users', {
+      method:'POST', headers:{'Content-Type':'application/json', ...authHeader()},
+      body: JSON.stringify({})
+    });
+  }catch(e){}
+
+  await enterApp();
+}
+
+function initGoogleSignIn(){
+  if(typeof google === 'undefined' || !google.accounts){
+    setTimeout(initGoogleSignIn, 300);
     return;
   }
-  users.forEach(u=>{
-    const row = document.createElement('div');
-    row.className = 'userrow';
-    const log = loadLog(u);
-    row.innerHTML = `<div class="avatar">${initials(u)}</div>
-      <div><div class="name">${u}</div><div class="meta">${log.length} registros guardados</div></div>`;
-    row.onclick = ()=> onPick(u);
-    el.appendChild(row);
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleCredential,
+    auto_select: true
   });
+  google.accounts.id.renderButton(document.getElementById('googleSignInBtn'), {
+    theme:'filled_black', size:'large', text:'signin_with', shape:'pill', width:280
+  });
+  google.accounts.id.prompt(); // intenta One Tap si ya hay sesión de Google activa
 }
 
-async function createUser(name){
-  name = name.trim();
-  if(!name) return;
-  const users = loadUsers();
-  if(!users.includes(name)){ users.push(name); saveUsers(users); }
-  await cloudPushUser(name);
-  return name;
+function signOut(){
+  if(typeof google !== 'undefined' && google.accounts){
+    google.accounts.id.disableAutoSelect();
+  }
+  currentUser = null; currentUserName = ''; currentUserPicture = ''; googleIdToken = null;
+  document.getElementById('userModalBg').classList.remove('show');
+  document.getElementById('appWrap').style.display = 'none';
+  document.getElementById('loginScreen').classList.add('active');
 }
 
-async function selectUser(user){
-  currentUser = user;
-  document.getElementById('pillName').textContent = user;
-  document.getElementById('pillAvatar').textContent = initials(user);
+async function syncUsersList(){
+  try{
+    const r = await fetch('/api/users');
+    if(!r.ok) return [];
+    const data = await r.json();
+    return data.users || [];
+  }catch(e){ return []; }
+}
+
+async function fetchUserRoutine(user){
+  try{
+    const r = await fetch('/api/routine?user=' + encodeURIComponent(user));
+    if(r.ok){
+      const data = await r.json();
+      if(data.routine) return data.routine;
+    }
+  }catch(e){}
+  const local = localStorage.getItem('rutina_routine_' + user);
+  if(local){ try{ return JSON.parse(local); }catch(e){} }
+  return [];
+}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+let currentDay = DAY_ORDER[new Date().getDay()===0?0:Math.min(new Date().getDay()-1,4)];
+let sessionState = {}; // { exerciseKey: {done, sets:[{reps,peso}]} }
+
+function exKey(ex, idx){ return `${ex.dia}_${idx}`; }
+function initials(name){ return (name||'?').trim().slice(0,2).toUpperCase(); }
+
+async function enterApp(){
+  document.getElementById('pillName').textContent = currentUserName;
+  document.getElementById('pillAvatar').innerHTML = currentUserPicture
+    ? `<img src="${currentUserPicture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+    : initials(currentUserName);
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('appWrap').style.display = 'block';
   document.getElementById('userModalBg').classList.remove('show');
 
-  const cloudEntries = await cloudPull(user);
-  if(cloudEntries) saveLog(user, cloudEntries);
+  const cloudEntries = await cloudPull(currentUser);
+  if(cloudEntries) saveLog(currentUser, cloudEntries);
 
-  await loadRoutine(user);
+  await loadRoutine(currentUser);
 
   renderDayChips();
   selectDay(currentDay);
@@ -889,51 +922,64 @@ async function persistRoutine(user){
   localStorage.setItem('rutina_routine_' + user, JSON.stringify(ROUTINE));
   if(CLOUD_AVAILABLE){
     try{
-      await fetch('/api/routine?user=' + encodeURIComponent(user), {
-        method:'POST', headers:{'Content-Type':'application/json'},
+      const r = await fetch('/api/routine?user=' + encodeURIComponent(user), {
+        method:'POST', headers:{'Content-Type':'application/json', ...authHeader()},
         body: JSON.stringify({routine: ROUTINE})
       });
+      if(r.status === 403){ showSync('No autorizado para editar esa rutina'); return; }
       showSync('Rutina actualizada ✓');
     }catch(e){ showSync('Guardado local (sin conexión)'); }
   }
 }
 
-async function fetchUserRoutine(user){
-  if(CLOUD_AVAILABLE){
-    try{
-      const r = await fetch('/api/routine?user=' + encodeURIComponent(user));
-      if(r.ok){
-        const data = await r.json();
-        if(data.routine) return data.routine;
-      }
-    }catch(e){}
-  }
-  const local = localStorage.getItem('rutina_routine_' + user);
-  if(local){ try{ return JSON.parse(local); }catch(e){} }
-  return [];
-}
-
 /* ============================================================
    EDITOR DE RUTINA
    ============================================================ */
-function showEditor(){
+let editTargetUser = null;
+
+async function showEditor(){
+  editTargetUser = currentUser;
   document.getElementById('entrenoScreen').classList.remove('active');
   document.getElementById('editorScreen').classList.add('active');
-  document.getElementById('editorUserLabel').textContent = currentUser;
+  document.getElementById('editorUserLabel').textContent = currentUserName;
+
+  const adminRow = document.getElementById('adminEditRow');
+  if(isAdmin()){
+    adminRow.style.display = 'block';
+    const allUsers = await syncUsersList();
+    const sel = document.getElementById('adminEditTarget');
+    sel.innerHTML = '';
+    allUsers.forEach(u=>{
+      const opt = document.createElement('option');
+      opt.value = u.email;
+      opt.textContent = u.email === currentUser ? `${u.name} (vos)` : u.name;
+      sel.appendChild(opt);
+    });
+    sel.value = currentUser;
+  } else {
+    adminRow.style.display = 'none';
+  }
   renderEditor();
 }
+document.getElementById('adminEditTarget').addEventListener('change', async function(){
+  editTargetUser = this.value;
+  document.getElementById('editorUserLabel').textContent = this.selectedOptions[0].textContent;
+  ROUTINE = ensureIds(await fetchUserRoutine(editTargetUser));
+  renderEditor();
+});
+
 function backFromEditor(){
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
-  selectDay(currentDay); // refrescar por si hubo cambios
+  loadRoutine(currentUser).then(()=> selectDay(currentDay)); // volver a la rutina propia
 }
 
 /* ============================================================
    COPIAR RUTINA DE OTRO USUARIO
    ============================================================ */
 async function openCopyModal(){
-  const allUsers = await syncUsers();
-  const others = allUsers.filter(u => u !== currentUser);
+  const allUsers = await syncUsersList();
+  const others = allUsers.filter(u => u.email !== editTargetUser);
   const sel = document.getElementById('copy_sourceUser');
   sel.innerHTML = '';
   if(others.length === 0){
@@ -941,14 +987,14 @@ async function openCopyModal(){
   } else {
     others.forEach(u=>{
       const opt = document.createElement('option');
-      opt.value = u; opt.textContent = u;
+      opt.value = u.email; opt.textContent = u.name;
       sel.appendChild(opt);
     });
   }
   document.getElementById('copy_sourceDay').value = 'ALL';
   document.getElementById('copy_targetDayRow').style.display = 'none';
   document.getElementById('copy_targetDay').value = currentDay;
-  document.getElementById('copy_warnText').textContent = 'Esto reemplaza tu rutina completa actual. No se puede deshacer.';
+  document.getElementById('copy_warnText').textContent = 'Esto reemplaza la rutina completa actual. No se puede deshacer.';
   document.getElementById('copyModalBg').classList.add('show');
 }
 function closeCopyModal(){
@@ -958,8 +1004,8 @@ document.getElementById('copy_sourceDay').addEventListener('change', function(){
   const isAll = this.value === 'ALL';
   document.getElementById('copy_targetDayRow').style.display = isAll ? 'none' : 'block';
   document.getElementById('copy_warnText').textContent = isAll
-    ? 'Esto reemplaza tu rutina completa actual. No se puede deshacer.'
-    : 'Esto reemplaza los ejercicios de ese día en tu rutina. No se puede deshacer.';
+    ? 'Esto reemplaza la rutina completa actual. No se puede deshacer.'
+    : 'Esto reemplaza los ejercicios de ese día. No se puede deshacer.';
 });
 
 async function performCopy(){
@@ -974,7 +1020,7 @@ async function performCopy(){
   }
 
   if(srcDay === 'ALL'){
-    if(!confirm(`Esto reemplaza TODA tu rutina actual por la de ${srcUser}. ¿Continuar?`)) return;
+    if(!confirm(`Esto reemplaza TODA la rutina actual por la de ${srcUser}. ¿Continuar?`)) return;
     ROUTINE = ensureIds(cloneRoutineWithNewIds(srcRoutine));
   } else {
     const targetDay = document.getElementById('copy_targetDay').value;
@@ -985,7 +1031,7 @@ async function performCopy(){
     ROUTINE = ROUTINE.filter(e => e.dia !== targetDay).concat(dayExercises);
   }
 
-  await persistRoutine();
+  await persistRoutine(editTargetUser);
   closeCopyModal();
   renderEditor();
   showSync('Rutina copiada ✓');
@@ -1160,7 +1206,7 @@ async function saveExerciseForm(){
       imagen: editingExerciseImg || undefined
     });
   }
-  await persistRoutine();
+  await persistRoutine(editTargetUser);
   closeExerciseForm();
   renderEditor();
 }
@@ -1168,7 +1214,7 @@ async function saveExerciseForm(){
 async function deleteExercise(id){
   if(!confirm('¿Borrar este ejercicio de la rutina?')) return;
   ROUTINE = ROUTINE.filter(e=>e._id !== id);
-  await persistRoutine();
+  await persistRoutine(editTargetUser);
   renderEditor();
 }
 
@@ -1176,23 +1222,17 @@ async function deleteExercise(id){
 /* ============================================================
    INIT
    ============================================================ */
-document.getElementById('createUserBtn').onclick = async ()=>{
-  const input = document.getElementById('newUserName');
-  const name = await createUser(input.value);
-  if(name){ input.value=''; selectUser(name); }
-};
-document.getElementById('newUserName').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('createUserBtn').click();
-});
 document.getElementById('userPill').onclick = ()=>{
-  renderUserList('modalUserList', u=>selectUser(u));
+  document.getElementById('modalAvatar').innerHTML = currentUserPicture
+    ? `<img src="${currentUserPicture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
+    : initials(currentUserName);
+  document.getElementById('modalUserName').textContent = currentUserName;
+  document.getElementById('modalUserEmail').textContent = currentUser;
   document.getElementById('userModalBg').classList.add('show');
 };
 document.getElementById('modalCloseBtn').onclick = ()=> document.getElementById('userModalBg').classList.remove('show');
-document.getElementById('modalCreateBtn').onclick = async ()=>{
-  const input = document.getElementById('modalNewUser');
-  const name = await createUser(input.value);
-  if(name){ input.value=''; selectUser(name); }
+document.getElementById('signOutBtn').onclick = ()=>{
+  if(confirm('¿Cerrar sesión?')) signOut();
 };
 document.getElementById('saveSessionBtn').onclick = saveSession;
 document.getElementById('navHistBtn').onclick = showHistory;
@@ -1220,7 +1260,7 @@ document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
 
 (async function init(){
   await cloudPing();
-  await renderUserList('userList', selectUser);
+  initGoogleSignIn();
 })();
 </script>
 </body>
