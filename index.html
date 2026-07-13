@@ -265,6 +265,9 @@ input:focus{outline:none; border-color:var(--lime);}
   background:var(--surface-2); color:var(--text); font-size:14px; cursor:pointer; flex:0 0 auto;
 }
 .editor-btn.danger{color:var(--red); border-color:var(--red);}
+.editor-move{display:flex; flex-direction:column; gap:3px; flex:0 0 auto;}
+.editor-btn.small{width:26px; height:26px; font-size:10px; padding:0;}
+.editor-btn.small:disabled{opacity:.25; cursor:default;}
 
 /* Formulario ejercicio */
 .field-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
@@ -419,10 +422,10 @@ select{
       <label class="field-label">Nombre del ejercicio</label>
       <input type="text" id="ef_ejercicio" placeholder="Ej: Flexiones tríceps">
     </div>
-    <div class="row" style="display:flex; gap:8px;">
-      <div style="flex:1"><label class="field-label">Series</label><input type="number" id="ef_series"></div>
-      <div style="flex:1"><label class="field-label">Rep.</label><input type="number" id="ef_rep"></div>
-      <div style="flex:1"><label class="field-label">Peso kg</label><input type="number" id="ef_peso"></div>
+    <div class="row">
+      <label class="field-label">Series planificadas (objetivo)</label>
+      <div class="sets-list" id="ef_setsList"></div>
+      <button class="add-set-btn" type="button" id="ef_addSetBtn">+ Agregar serie</button>
     </div>
     <div class="row">
       <label class="field-label">Foto del ejercicio</label>
@@ -715,7 +718,9 @@ function renderExercises(items){
     groups[musc].forEach(ex=>{
       const idx = ROUTINE.indexOf(ex);
       const key = exKey(ex, idx);
-      const sets = Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
+      const sets = (Array.isArray(ex.sets) && ex.sets.length)
+        ? ex.sets.map(s=>({reps:s.reps, peso:s.peso}))
+        : Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
       sessionState[key] = {done:false, sets};
       const card = document.createElement('div');
       card.className = 'exercise';
@@ -724,12 +729,16 @@ function renderExercises(items){
       const imgHtml = imgUrl
         ? `<img class="ex-photo" src="${imgUrl}" alt="Demostración: ${ex.ejercicio}" loading="lazy" onclick="openLightbox('${imgUrl}','${ex.ejercicio.replace(/'/g,"\\'")}')" onerror="this.closest('.ex-photo-wrap').style.display='none'">`
         : '';
+      const allSame = sets.every(s=>s.reps===sets[0].reps && s.peso===sets[0].peso);
+      const targetText = allSame
+        ? `Objetivo: ${sets.length} series × ${sets[0].reps} rep · ${sets[0].peso} kg`
+        : `Objetivo: ${sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ')}`;
       card.innerHTML = `
         <div class="ex-head">
           ${imgUrl ? `<div class="ex-photo-wrap">${imgHtml}</div>` : ''}
           <div style="flex:1">
             <div class="ex-name">${ex.ejercicio}</div>
-            <div class="ex-target">Objetivo: ${ex.series} series × ${ex.rep} rep · ${ex.peso} kg</div>
+            <div class="ex-target">${targetText}</div>
           </div>
           <div class="check" id="chk_${key}">✓</div>
         </div>
@@ -1048,7 +1057,7 @@ function renderEditor(){
     title.className = 'editor-day-title';
     title.textContent = DAY_NAMES[day];
     sec.appendChild(title);
-    items.forEach(ex=>{
+    items.forEach((ex, i)=>{
       const img = exerciseImageUrl(ex);
       const row = document.createElement('div');
       row.className = 'editor-row';
@@ -1058,11 +1067,17 @@ function renderEditor(){
           <div class="editor-name">${ex.ejercicio}</div>
           <div class="editor-meta">${ex.musculo} · ${ex.series}×${ex.rep} · ${ex.peso}kg</div>
         </div>
+        <div class="editor-move">
+          <button class="editor-btn small" data-act="up" ${i===0?'disabled':''}>▲</button>
+          <button class="editor-btn small" data-act="down" ${i===items.length-1?'disabled':''}>▼</button>
+        </div>
         <button class="editor-btn" data-act="edit">✎</button>
         <button class="editor-btn danger" data-act="del">🗑</button>
       `;
       row.querySelector('[data-act="edit"]').onclick = ()=> openExerciseForm(ex._id);
       row.querySelector('[data-act="del"]').onclick = ()=> deleteExercise(ex._id);
+      row.querySelector('[data-act="up"]').onclick = ()=> moveExercise(ex._id, -1);
+      row.querySelector('[data-act="down"]').onclick = ()=> moveExercise(ex._id, 1);
       sec.appendChild(row);
     });
     const addBtn = document.createElement('button');
@@ -1078,6 +1093,8 @@ function renderEditor(){
 let editingExerciseId = null;
 let editingExerciseImg = null;
 
+let editingSets = [];
+
 function openExerciseForm(id, presetDay){
   editingExerciseId = id;
   const ex = id ? ROUTINE.find(e=>e._id===id) : null;
@@ -1085,9 +1102,16 @@ function openExerciseForm(id, presetDay){
   document.getElementById('ef_dia').value = ex ? ex.dia : (presetDay || 'LUN');
   document.getElementById('ef_musculo').value = ex ? ex.musculo : '';
   document.getElementById('ef_ejercicio').value = ex ? ex.ejercicio : '';
-  document.getElementById('ef_series').value = ex ? ex.series : 3;
-  document.getElementById('ef_rep').value = ex ? ex.rep : 12;
-  document.getElementById('ef_peso').value = ex ? ex.peso : 0;
+
+  if(ex && Array.isArray(ex.sets) && ex.sets.length){
+    editingSets = ex.sets.map(s=>({reps:s.reps, peso:s.peso}));
+  } else if(ex){
+    editingSets = Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep||0, peso: ex.peso||0}));
+  } else {
+    editingSets = [{reps:12,peso:0},{reps:12,peso:0},{reps:12,peso:0}];
+  }
+  renderEfSetsList();
+
   editingExerciseImg = ex ? exerciseImageUrl(ex) : null;
   renderCurrentImg();
   document.getElementById('ef_imgResults').innerHTML = '';
@@ -1104,6 +1128,36 @@ function renderCurrentImg(){
     ? `<img src="${editingExerciseImg}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">`
     : '<div class="hint">Todavía sin foto.</div>';
 }
+
+function renderEfSetsList(){
+  const wrap = document.getElementById('ef_setsList');
+  wrap.innerHTML = '';
+  editingSets.forEach((set, i)=>{
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    row.innerHTML = `
+      <span class="set-num">S${i+1}</span>
+      <input type="number" inputmode="numeric" class="set-reps" value="${set.reps}">
+      <span class="set-x">rep ×</span>
+      <input type="number" inputmode="decimal" class="set-peso" value="${set.peso}">
+      <span class="set-unit">kg</span>
+      <button class="set-remove" type="button" title="Quitar esta serie">🗑</button>
+    `;
+    row.querySelector('.set-reps').addEventListener('input', e=>{ editingSets[i].reps = +e.target.value || 0; });
+    row.querySelector('.set-peso').addEventListener('input', e=>{ editingSets[i].peso = +e.target.value || 0; });
+    row.querySelector('.set-remove').onclick = ()=>{
+      if(editingSets.length<=1) return;
+      editingSets.splice(i,1);
+      renderEfSetsList();
+    };
+    wrap.appendChild(row);
+  });
+}
+document.getElementById('ef_addSetBtn').onclick = ()=>{
+  const last = editingSets[editingSets.length-1] || {reps:12, peso:0};
+  editingSets.push({reps:last.reps, peso:last.peso});
+  renderEfSetsList();
+};
 
 const MUSCLE_LABEL_ES = {
   pectorals: 'Pecho', lats: 'Espalda', 'upper-back': 'Espalda alta', traps: 'Trapecio', spine: 'Espalda baja',
@@ -1190,19 +1244,24 @@ async function saveExerciseForm(){
   const dia = document.getElementById('ef_dia').value;
   const musculo = document.getElementById('ef_musculo').value.trim() || 'General';
   const ejercicio = document.getElementById('ef_ejercicio').value.trim();
-  const series = +document.getElementById('ef_series').value || 0;
-  const rep = +document.getElementById('ef_rep').value || 0;
-  const peso = +document.getElementById('ef_peso').value || 0;
   if(!ejercicio){ alert('Poné el nombre del ejercicio.'); return; }
+  if(editingSets.length === 0){ alert('Agregá al menos una serie.'); return; }
+
+  const sets = editingSets.map(s=>({reps: +s.reps||0, peso: +s.peso||0}));
+  const series = sets.length;
+  const rep = sets[0].reps;
+  const peso = sets[0].peso;
+
   if(editingExerciseId){
     const ex = ROUTINE.find(e=>e._id===editingExerciseId);
     ex.dia = dia; ex.musculo = musculo; ex.grupo = ex.grupo || musculo;
     ex.ejercicio = ejercicio; ex.series = series; ex.rep = rep; ex.peso = peso;
+    ex.sets = sets;
     if(editingExerciseImg) ex.imagen = editingExerciseImg;
   } else {
     ROUTINE.push({
       _id: 'ex_' + Math.random().toString(36).slice(2,9),
-      dia, grupo: musculo, musculo, ejercicio, series, rep, peso,
+      dia, grupo: musculo, musculo, ejercicio, series, rep, peso, sets,
       imagen: editingExerciseImg || undefined
     });
   }
@@ -1215,6 +1274,18 @@ async function deleteExercise(id){
   if(!confirm('¿Borrar este ejercicio de la rutina?')) return;
   ROUTINE = ROUTINE.filter(e=>e._id !== id);
   await persistRoutine(editTargetUser);
+  renderEditor();
+}
+
+function moveExercise(id, dir){
+  const idx = ROUTINE.findIndex(e=>e._id===id);
+  if(idx === -1) return;
+  const day = ROUTINE[idx].dia;
+  let j = idx + dir;
+  while(j>=0 && j<ROUTINE.length && ROUTINE[j].dia !== day) j += dir;
+  if(j<0 || j>=ROUTINE.length) return; // ya está en el extremo de ese día
+  [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
+  persistRoutine(editTargetUser);
   renderEditor();
 }
 
