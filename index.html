@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RUTINA · Registro de Entrenamiento</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B0D10">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0D10;
+  --surface:#14171C;
+  --surface-2:#1B1F26;
+  --line:#262B33;
+  --text:#ECEFF3;
+  --muted:#8A93A3;
+  --lime:#C8FF3D;
+  --lime-dim:#8FB82C;
+  --blue:#4D7CFF;
+  --red:#FF5C5C;
+  --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  min-height:100vh;
+  padding-bottom:90px;
+}
+.display{font-family:'Bebas Neue',sans-serif; letter-spacing:.5px;}
+.mono{font-family:'JetBrains Mono',monospace;}
+
+/* ---------- Top bar ---------- */
+.topbar{
+  position:sticky; top:0; z-index:20;
+  background:rgba(11,13,16,.92); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+  padding:14px 18px; display:flex; align-items:center; justify-content:space-between;
+}
+.brand{display:flex; align-items:baseline; gap:8px;}
+.brand .display{font-size:26px; color:var(--lime); line-height:1;}
+.brand .sub{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1.5px;}
+.userpill{
+  display:flex; align-items:center; gap:8px;
+  background:var(--surface-2); border:1px solid var(--line);
+  padding:6px 12px 6px 6px; border-radius:999px; cursor:pointer;
+}
+.avatar{
+  width:26px; height:26px; border-radius:50%;
+  background:var(--lime); color:#0B0D10; font-weight:800; font-size:12px;
+  display:flex; align-items:center; justify-content:center;
+}
+.userpill span{font-size:13px; font-weight:600;}
+
+/* ---------- Screens ---------- */
+.screen{display:none; padding:18px; max-width:640px; margin:0 auto;}
+.screen.active{display:block;}
+
+/* Login */
+#loginScreen{padding-top:14vh;}
+.login-hero{text-align:center; margin-bottom:34px;}
+.login-hero .display{font-size:52px; color:var(--lime); line-height:.9;}
+.login-hero p{color:var(--muted); margin-top:6px; font-size:14px;}
+.userlist{display:flex; flex-direction:column; gap:10px; margin-bottom:22px;}
+.userrow{
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; cursor:pointer; transition:border-color .15s;
+}
+.userrow:active{border-color:var(--lime);}
+.userrow .avatar{width:38px; height:38px; font-size:15px;}
+.userrow .name{font-weight:700; font-size:16px;}
+.userrow .meta{color:var(--muted); font-size:12px; margin-top:2px;}
+.newuser{display:flex; gap:8px;}
+input[type=text], input[type=number]{
+  background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+  border-radius:10px; padding:13px 14px; font-size:15px; font-family:inherit; width:100%;
+}
+input:focus{outline:none; border-color:var(--lime);}
+.btn{
+  border:none; border-radius:10px; padding:13px 18px; font-weight:700; font-size:14px;
+  cursor:pointer; font-family:'Inter',sans-serif;
+}
+.btn-lime{background:var(--lime); color:#0B0D10;}
+.btn-ghost{background:transparent; color:var(--text); border:1px solid var(--line);}
+.btn-block{width:100%;}
+
+/* Day selector */
+.days{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px;}
+.day-chip{
+  flex:0 0 auto; padding:10px 16px; border-radius:999px; border:1px solid var(--line);
+  background:var(--surface); color:var(--muted); font-weight:700; font-size:13px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; min-width:56px;
+}
+.day-chip small{font-size:9px; font-weight:600; letter-spacing:1px; opacity:.8;}
+.day-chip.active{background:var(--lime); color:#0B0D10; border-color:var(--lime);}
+
+.day-title{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;}
+.day-title .display{font-size:30px;}
+.day-title .grp{color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:1.5px;}
+.progress-ring-wrap{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted);}
+
+/* Exercise cards grouped by músculo */
+.musc-group{margin-bottom:22px;}
+.musc-label{
+  font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--lime-dim);
+  margin-bottom:8px; font-weight:700;
+}
+.exercise{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; margin-bottom:10px;
+}
+.exercise.done{border-color:var(--lime-dim); background:linear-gradient(180deg,rgba(200,255,61,.06),transparent);}
+.ex-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.ex-name{font-weight:700; font-size:15px; line-height:1.25;}
+.ex-target{color:var(--muted); font-size:12px; margin-top:3px;}
+.check{
+  flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line);
+  display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:transparent;
+}
+.check.on{background:var(--lime); border-color:var(--lime); color:#0B0D10;}
+.ex-inputs{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px;}
+.ex-inputs label{font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
+.ex-inputs input{padding:10px; text-align:center; font-weight:700; font-family:'JetBrains Mono',monospace;}
+.tally{display:flex; gap:4px; margin-top:10px;}
+.tally-mark{
+  flex:1; height:6px; border-radius:3px; background:var(--surface-2); border:1px solid var(--line);
+}
+.tally-mark.filled{background:var(--lime); border-color:var(--lime);}
+
+.save-bar{
+  position:fixed; bottom:0; left:0; right:0; z-index:20;
+  background:rgba(11,13,16,.95); backdrop-filter:blur(10px); border-top:1px solid var(--line);
+  padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+  display:flex; gap:10px; max-width:640px; margin:0 auto;
+}
+.save-bar .btn{flex:1;}
+
+/* Bottom nav */
+.tabbar{
+  position:fixed; top:0; right:0; z-index:25; display:none;
+}
+.navtabs{display:flex; gap:6px; padding:0 18px 12px;}
+.navtab{
+  padding:8px 14px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer;
+  color:var(--muted); border:1px solid var(--line); background:var(--surface);
+}
+.navtab.active{color:#0B0D10; background:var(--blue); border-color:var(--blue);}
+
+/* History */
+.hist-item{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; margin-bottom:10px;
+}
+.hist-item .top{display:flex; justify-content:space-between; font-size:13px; color:var(--muted);}
+.hist-item .ex{font-weight:700; margin-top:4px;}
+.hist-item .stat{font-family:'JetBrains Mono',monospace; color:var(--lime); font-weight:700;}
+.empty{text-align:center; color:var(--muted); padding:40px 20px; font-size:14px;}
+
+/* Sync badge */
+.syncbadge{
+  position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:30;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--muted);
+  font-size:11px; padding:6px 14px; border-radius:999px; opacity:0; transition:opacity .3s;
+  pointer-events:none;
+}
+.syncbadge.show{opacity:1;}
+
+/* Modal (nuevo usuario / config nube) */
+.modal-bg{
+  position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; display:none;
+  align-items:flex-end; justify-content:center;
+}
+.modal-bg.show{display:flex;}
+.modal{
+  background:var(--surface); border:1px solid var(--line); border-radius:18px 18px 0 0;
+  padding:22px 18px calc(22px + env(safe-area-inset-bottom)); width:100%; max-width:640px;
+}
+.modal h3{margin:0 0 14px; font-family:'Bebas Neue'; font-size:24px; letter-spacing:.5px; color:var(--lime);}
+.modal .row{margin-bottom:12px;}
+.modal .actions{display:flex; gap:10px; margin-top:16px;}
+.modal .actions .btn{flex:1;}
+.hint{font-size:12px; color:var(--muted); margin-top:8px; line-height:1.5;}
+</style>
+</head>
+<body>
+
+<div class="syncbadge" id="syncBadge">Sincronizando…</div>
+
+<!-- ============ LOGIN ============ -->
+<div class="screen active" id="loginScreen">
+  <div class="login-hero">
+    <div class="display">RUTINA</div>
+    <p>Registro de entrenamiento · 5 días</p>
+  </div>
+  <div class="userlist" id="userList"></div>
+  <div class="newuser">
+    <input type="text" id="newUserName" placeholder="Nombre de usuario nuevo">
+    <button class="btn btn-lime" id="createUserBtn">Crear</button>
+  </div>
+  <p class="hint" id="cloudStatusHint" style="text-align:center; margin-top:22px;"></p>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="appWrap" style="display:none;">
+  <div class="topbar">
+    <div class="brand">
+      <span class="display">RUTINA</span>
+    </div>
+    <div class="userpill" id="userPill">
+      <div class="avatar" id="pillAvatar">?</div>
+      <span id="pillName">Usuario</span>
+    </div>
+  </div>
+
+  <div class="screen active" id="entrenoScreen">
+    <div class="days" id="dayChips"></div>
+    <div class="day-title">
+      <div>
+        <div class="display" id="dayTitleName">LUNES</div>
+        <div class="grp" id="dayTitleGroup">Grupo muscular</div>
+      </div>
+      <div class="progress-ring-wrap"><span id="dayProgress">0/0 completados</span></div>
+    </div>
+    <div id="exerciseList"></div>
+  </div>
+
+  <div class="save-bar">
+    <button class="btn btn-ghost" id="navHistBtn">Historial</button>
+    <button class="btn btn-lime btn-block" id="saveSessionBtn">Guardar sesión</button>
+  </div>
+</div>
+
+<!-- ============ HISTORIAL ============ -->
+<div class="screen" id="histScreen">
+  <div class="day-title">
+    <div class="display">HISTORIAL</div>
+    <div class="grp" id="histUserLabel"></div>
+  </div>
+  <div id="histList"></div>
+  <div style="height:80px"></div>
+  <div class="save-bar">
+    <button class="btn btn-ghost btn-block" id="backToEntrenoBtn">← Volver a rutina</button>
+  </div>
+</div>
+
+<!-- ============ MODAL USUARIO ============ -->
+<div class="modal-bg" id="userModalBg">
+  <div class="modal">
+    <h3>Cambiar usuario</h3>
+    <div id="modalUserList" class="userlist"></div>
+    <div class="row">
+      <input type="text" id="modalNewUser" placeholder="Nombre de usuario nuevo">
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="modalCloseBtn">Cerrar</button>
+      <button class="btn btn-lime" id="modalCreateBtn">Crear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   DATOS BASE — extraídos de RUTINA_LO-1-1-1.xlsx (hoja RUTINA)
+   ============================================================ */
+const ROUTINE = [{"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Pectoral Pole Alta 1 Mano", "series": 4, "rep": 8, "peso": 20}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 12, "peso": 40}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexión Tríceps con Mancuernas", "series": 4, "rep": 8, "peso": 18}, {"dia": "LUN", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 4, "rep": 10, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 44}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 26}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 36}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Banco Inclinado 2 db", "series": 4, "rep": 12, "peso": 8}, {"dia": "MAR", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Alterno 2 db de Pie y Sentado", "series": 4, "rep": 12, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Lunges a aquats", "series": 2, "rep": 10, "peso": 0}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Multipower", "series": 5, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Sentadilla Bulgara", "series": 4, "rep": 10, "peso": 10}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Peso Muerto sumo", "series": 4, "rep": 10, "peso": 26}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Extensión Rodilla Máquina una pierna", "series": 4, "rep": 10, "peso": 28}, {"dia": "MIE", "grupo": "Piernas", "musculo": "06.Pierna", "ejercicio": "Prensa Horizontal", "series": 4, "rep": 10, "peso": 62}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 2, "rep": 10, "peso": 0}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Banca Superior Barra libre", "series": 5, "rep": 12, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Press Piso Plano", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "05.Pecho", "ejercicio": "Apertura Poleas Bajas", "series": 4, "rep": 10, "peso": 16}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Press Hombro Maquina sentado", "series": 4, "rep": 10, "peso": 42}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "04.Hombro", "ejercicio": "Elevación Frontal y Laterales", "series": 4, "rep": 6, "peso": 10}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Flexiones tríceps", "series": 4, "rep": 8, "peso": 18}, {"dia": "JUE", "grupo": "Pe-Hom-Tri", "musculo": "07.Triceps", "ejercicio": "Tríceps Polea Alta 1 Mano  Oblicuo", "series": 4, "rep": 10, "peso": 14}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Mancuernas Libre Prono", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Barra Z de Pie", "series": 2, "rep": 10, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Jalon dorsal", "series": 4, "rep": 12, "peso": 46}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Jalon curl concentrado bicep", "series": 4, "rep": 12, "peso": 34}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo Horizontal Maquina Bilateral", "series": 4, "rep": 12, "peso": 40}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "03.Espalda", "ejercicio": "Remo polea lat push down", "series": 4, "rep": 12, "peso": 42}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps 2 Db Martillo Manos Juntas", "series": 4, "rep": 12, "peso": 8}, {"dia": "VIE", "grupo": "Esp-Bic", "musculo": "02.Bíceps", "ejercicio": "Bíceps Polea Baja. Diferentes agarres", "series": 4, "rep": 12, "peso": 36}];
+
+const DAY_NAMES = {LUN:'Lunes', MAR:'Martes', MIE:'Miércoles', JUE:'Jueves', VIE:'Viernes'};
+const DAY_ORDER = ['LUN','MAR','MIE','JUE','VIE'];
+
+/* ============================================================
+   ALMACENAMIENTO — localStorage + sync opcional en la nube
+   Si existe /api/data (desplegado en Vercel) se sincroniza sólo.
+   Si no hay red o no está desplegado, funciona 100% local.
+   ============================================================ */
+const LS_USERS = 'rutina_users';
+const LS_LOG = u => `rutina_log_${u}`;
+let CLOUD_AVAILABLE = false;
+
+function loadUsers(){ return JSON.parse(localStorage.getItem(LS_USERS) || '[]'); }
+function saveUsers(list){ localStorage.setItem(LS_USERS, JSON.stringify(list)); }
+function loadLog(user){ return JSON.parse(localStorage.getItem(LS_LOG(user)) || '[]'); }
+function saveLog(user, entries){ localStorage.setItem(LS_LOG(user), JSON.stringify(entries)); }
+
+function showSync(msg){
+  const b = document.getElementById('syncBadge');
+  b.textContent = msg; b.classList.add('show');
+  clearTimeout(showSync._t);
+  showSync._t = setTimeout(()=>b.classList.remove('show'), 1600);
+}
+
+async function cloudPing(){
+  try{
+    const r = await fetch('/api/data?user=__ping__', {method:'GET'});
+    CLOUD_AVAILABLE = r.ok || r.status === 404;
+  }catch(e){ CLOUD_AVAILABLE = false; }
+  document.getElementById('cloudStatusHint').textContent = CLOUD_AVAILABLE
+    ? '☁️ Nube conectada — tus datos se sincronizan entre dispositivos.'
+    : '📴 Modo local — los datos quedan en este dispositivo (ver README para activar la nube).';
+}
+
+async function cloudPull(user){
+  if(!CLOUD_AVAILABLE) return null;
+  try{
+    const r = await fetch('/api/data?user=' + encodeURIComponent(user));
+    if(!r.ok) return null;
+    const data = await r.json();
+    return data && data.entries ? data.entries : null;
+  }catch(e){ return null; }
+}
+
+async function cloudPush(user, entries){
+  if(!CLOUD_AVAILABLE) return;
+  try{
+    showSync('Sincronizando…');
+    await fetch('/api/data?user=' + encodeURIComponent(user), {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({entries})
+    });
+    showSync('Sincronizado ✓');
+  }catch(e){ showSync('Sin conexión, guardado local'); }
+}
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+let currentUser = null;
+let currentDay = DAY_ORDER[new Date().getDay()===0?0:Math.min(new Date().getDay()-1,4)];
+let sessionState = {}; // { exerciseKey: {done, series, rep, peso} }
+
+function exKey(ex, idx){ return `${ex.dia}_${idx}`; }
+
+/* ============================================================
+   LOGIN / USUARIOS
+   ============================================================ */
+function initials(name){ return name.trim().slice(0,2).toUpperCase(); }
+
+function renderUserList(targetId, onPick){
+  const el = document.getElementById(targetId);
+  const users = loadUsers();
+  el.innerHTML = '';
+  if(users.length === 0){
+    el.innerHTML = '<p class="hint">Todavía no hay usuarios. Creá el primero abajo.</p>';
+    return;
+  }
+  users.forEach(u=>{
+    const row = document.createElement('div');
+    row.className = 'userrow';
+    const log = loadLog(u);
+    row.innerHTML = `<div class="avatar">${initials(u)}</div>
+      <div><div class="name">${u}</div><div class="meta">${log.length} registros guardados</div></div>`;
+    row.onclick = ()=> onPick(u);
+    el.appendChild(row);
+  });
+}
+
+function createUser(name){
+  name = name.trim();
+  if(!name) return;
+  const users = loadUsers();
+  if(!users.includes(name)){ users.push(name); saveUsers(users); }
+  return name;
+}
+
+async function selectUser(user){
+  currentUser = user;
+  document.getElementById('pillName').textContent = user;
+  document.getElementById('pillAvatar').textContent = initials(user);
+  document.getElementById('loginScreen').classList.remove('active');
+  document.getElementById('appWrap').style.display = 'block';
+  document.getElementById('userModalBg').classList.remove('show');
+
+  const cloudEntries = await cloudPull(user);
+  if(cloudEntries) saveLog(user, cloudEntries);
+
+  renderDayChips();
+  selectDay(currentDay);
+}
+
+/* ============================================================
+   VISTA ENTRENO
+   ============================================================ */
+function renderDayChips(){
+  const wrap = document.getElementById('dayChips');
+  wrap.innerHTML = '';
+  DAY_ORDER.forEach(d=>{
+    const chip = document.createElement('div');
+    chip.className = 'day-chip' + (d===currentDay?' active':'');
+    chip.innerHTML = `<span>${d}</span><small>${DAY_NAMES[d].slice(0,3)}</small>`;
+    chip.onclick = ()=> selectDay(d);
+    wrap.appendChild(chip);
+  });
+}
+
+function selectDay(day){
+  currentDay = day;
+  sessionState = {};
+  renderDayChips();
+  const items = ROUTINE.filter(e=>e.dia===day);
+  document.getElementById('dayTitleName').textContent = DAY_NAMES[day];
+  document.getElementById('dayTitleGroup').textContent = items[0]?.grupo || '';
+  renderExercises(items);
+  updateProgress();
+}
+
+function groupBy(items, key){
+  const g = {};
+  items.forEach(it=>{ (g[it[key]] = g[it[key]]||[]).push(it); });
+  return g;
+}
+
+function renderExercises(items){
+  const list = document.getElementById('exerciseList');
+  list.innerHTML = '';
+  const groups = groupBy(items, 'musculo');
+  Object.keys(groups).forEach(musc=>{
+    const gdiv = document.createElement('div');
+    gdiv.className = 'musc-group';
+    gdiv.innerHTML = `<div class="musc-label">${musc.replace(/^\d+\./,'')}</div>`;
+    groups[musc].forEach(ex=>{
+      const idx = ROUTINE.indexOf(ex);
+      const key = exKey(ex, idx);
+      sessionState[key] = {done:false, series:ex.series, rep:ex.rep, peso:ex.peso};
+      const card = document.createElement('div');
+      card.className = 'exercise';
+      card.id = 'card_'+key;
+      card.innerHTML = `
+        <div class="ex-head">
+          <div>
+            <div class="ex-name">${ex.ejercicio}</div>
+            <div class="ex-target">Objetivo: ${ex.series} series × ${ex.rep} rep · ${ex.peso} kg</div>
+          </div>
+          <div class="check" id="chk_${key}">✓</div>
+        </div>
+        <div class="ex-inputs">
+          <div><label>Series</label><input type="number" inputmode="numeric" id="s_${key}" value="${ex.series}"></div>
+          <div><label>Rep.</label><input type="number" inputmode="numeric" id="r_${key}" value="${ex.rep}"></div>
+          <div><label>Peso kg</label><input type="number" inputmode="decimal" id="p_${key}" value="${ex.peso}"></div>
+        </div>
+        <div class="tally" id="tally_${key}"></div>
+      `;
+      list.appendChild(card);
+      buildTally(key, ex.series);
+      document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
+      ['s','r','p'].forEach(p=>{
+        document.getElementById(p+'_'+key).addEventListener('input', ()=>{
+          sessionState[key].series = +document.getElementById('s_'+key).value || 0;
+          sessionState[key].rep = +document.getElementById('r_'+key).value || 0;
+          sessionState[key].peso = +document.getElementById('p_'+key).value || 0;
+          buildTally(key, sessionState[key].series);
+        });
+      });
+    });
+  });
+}
+
+function buildTally(key, series){
+  const t = document.getElementById('tally_'+key);
+  if(!t) return;
+  t.innerHTML = '';
+  const n = Math.max(1, Math.min(series||1, 8));
+  for(let i=0;i<n;i++){
+    const m = document.createElement('div');
+    m.className = 'tally-mark' + (sessionState[key].done ? ' filled':'');
+    t.appendChild(m);
+  }
+}
+
+function toggleDone(key){
+  sessionState[key].done = !sessionState[key].done;
+  document.getElementById('chk_'+key).classList.toggle('on', sessionState[key].done);
+  document.getElementById('card_'+key).classList.toggle('done', sessionState[key].done);
+  buildTally(key, sessionState[key].series);
+  updateProgress();
+}
+
+function updateProgress(){
+  const keys = Object.keys(sessionState);
+  const done = keys.filter(k=>sessionState[k].done).length;
+  document.getElementById('dayProgress').textContent = `${done}/${keys.length} completados`;
+}
+
+/* ============================================================
+   GUARDAR SESIÓN
+   ============================================================ */
+async function saveSession(){
+  const log = loadLog(currentUser);
+  const now = new Date();
+  Object.keys(sessionState).forEach(key=>{
+    const s = sessionState[key];
+    const [dia, idx] = key.split('_');
+    const ex = ROUTINE[+idx];
+    log.push({
+      fecha: now.toISOString(),
+      dia: ex.dia, grupo: ex.grupo, musculo: ex.musculo, ejercicio: ex.ejercicio,
+      series: s.series, rep: s.rep, peso: s.peso,
+      estado: s.done ? 'OK' : 'PENDIENTE'
+    });
+  });
+  saveLog(currentUser, log);
+  await cloudPush(currentUser, log);
+  showSync('Sesión guardada ✓');
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function showHistory(){
+  document.getElementById('entrenoScreen').classList.remove('active');
+  document.getElementById('histScreen').classList.add('active');
+  document.getElementById('histUserLabel').textContent = currentUser;
+  const log = loadLog(currentUser).slice().reverse();
+  const wrap = document.getElementById('histList');
+  wrap.innerHTML = '';
+  if(log.length===0){
+    wrap.innerHTML = '<div class="empty">Todavía no registraste ninguna sesión.<br>Completá ejercicios y tocá "Guardar sesión".</div>';
+    return;
+  }
+  log.forEach(e=>{
+    const d = new Date(e.fecha);
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    item.innerHTML = `
+      <div class="top"><span>${d.toLocaleDateString('es-AR')} · ${DAY_NAMES[e.dia]||e.dia}</span><span>${e.estado}</span></div>
+      <div class="ex">${e.ejercicio}</div>
+      <div class="stat">${e.series}×${e.rep} · ${e.peso} kg</div>
+    `;
+    wrap.appendChild(item);
+  });
+}
+
+function backToEntreno(){
+  document.getElementById('histScreen').classList.remove('active');
+  document.getElementById('entrenoScreen').classList.add('active');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.getElementById('createUserBtn').onclick = ()=>{
+  const input = document.getElementById('newUserName');
+  const name = createUser(input.value);
+  if(name){ input.value=''; selectUser(name); }
+};
+document.getElementById('newUserName').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('createUserBtn').click();
+});
+document.getElementById('userPill').onclick = ()=>{
+  renderUserList('modalUserList', u=>selectUser(u));
+  document.getElementById('userModalBg').classList.add('show');
+};
+document.getElementById('modalCloseBtn').onclick = ()=> document.getElementById('userModalBg').classList.remove('show');
+document.getElementById('modalCreateBtn').onclick = ()=>{
+  const input = document.getElementById('modalNewUser');
+  const name = createUser(input.value);
+  if(name){ input.value=''; selectUser(name); }
+};
+document.getElementById('saveSessionBtn').onclick = saveSession;
+document.getElementById('navHistBtn').onclick = showHistory;
+document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
+
+(async function init(){
+  await cloudPing();
+  renderUserList('userList', selectUser);
+})();
+</script>
+</body>
+</html>
