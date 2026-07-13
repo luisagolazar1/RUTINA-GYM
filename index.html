@@ -351,14 +351,21 @@ select{
       <div style="flex:1"><label class="field-label">Peso kg</label><input type="number" id="ef_peso"></div>
     </div>
     <div class="row">
-      <label class="field-label">Foto del ejercicio (ExerciseDB)</label>
+      <label class="field-label">Foto del ejercicio</label>
       <div id="ef_currentImgWrap" style="margin-bottom:8px;"></div>
+
+      <label class="field-label">Explorar catálogo completo por grupo muscular</label>
+      <select id="ef_muscleBrowse" style="margin-bottom:10px;">
+        <option value="">— Elegir grupo muscular —</option>
+      </select>
+
+      <label class="field-label">O buscar por nombre / músculo</label>
       <div style="display:flex; gap:8px;">
-        <input type="text" id="ef_imgSearch" placeholder="Buscar en inglés: lat pulldown">
+        <input type="text" id="ef_imgSearch" placeholder="Ej: curl, sentadilla, espalda">
         <button class="btn btn-ghost" id="ef_searchBtn" style="flex:0 0 auto;">Buscar</button>
       </div>
       <div class="img-results" id="ef_imgResults"></div>
-      <p class="hint">Buscá en español o inglés: por nombre ("curl", "sentadilla") o por músculo ("bíceps", "espalda", "pierna"). Al elegir la foto se completan el nombre y el grupo muscular solos.</p>
+      <p class="hint">Elegí un grupo muscular para ver todos los ejercicios disponibles, o buscá por nombre/músculo en español o inglés. Al tocar la foto se completan el nombre y el grupo muscular solos.</p>
     </div>
     <div class="actions">
       <button class="btn btn-ghost" id="ef_cancelBtn">Cancelar</button>
@@ -805,6 +812,7 @@ function openExerciseForm(id, presetDay){
   renderCurrentImg();
   document.getElementById('ef_imgResults').innerHTML = '';
   document.getElementById('ef_imgSearch').value = '';
+  document.getElementById('ef_muscleBrowse').value = '';
   document.getElementById('exerciseFormBg').classList.add('show');
 }
 function closeExerciseForm(){
@@ -818,12 +826,52 @@ function renderCurrentImg(){
 }
 
 const MUSCLE_LABEL_ES = {
-  pectorals: 'Pecho', lats: 'Espalda', 'upper-back': 'Espalda', traps: 'Trapecio', spine: 'Espalda',
-  delts: 'Hombro', quads: 'Pierna (Cuádriceps)', hamstrings: 'Pierna (Isquiotibiales)',
-  glutes: 'Glúteos', adductors: 'Pierna (Aductores)', abductors: 'Pierna (Abductores)',
+  pectorals: 'Pecho', lats: 'Espalda', 'upper-back': 'Espalda alta', traps: 'Trapecio', spine: 'Espalda baja',
+  delts: 'Hombro', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales',
+  glutes: 'Glúteos', adductors: 'Aductores', abductors: 'Abductores',
   calves: 'Pantorrillas', abs: 'Abdomen', forearms: 'Antebrazo', biceps: 'Bíceps', triceps: 'Tríceps',
-  'serratus-anterior': 'Serrato', 'levator-scapulae': 'Cuello/Escápula'
+  'serratus-anterior': 'Serrato', 'levator-scapulae': 'Cuello/Escápula', cardio: 'Cardio'
 };
+// Los 19 grupos musculares disponibles en la base de ejercicios, para explorar el catálogo completo
+const MUSCLE_GROUPS = [
+  ['pectorals','Pecho'], ['lats','Espalda (dorsales)'], ['upper-back','Espalda alta'], ['traps','Trapecio'],
+  ['spine','Espalda baja'], ['delts','Hombro'], ['biceps','Bíceps'], ['triceps','Tríceps'],
+  ['forearms','Antebrazo'], ['quads','Cuádriceps'], ['hamstrings','Isquiotibiales'], ['glutes','Glúteos'],
+  ['adductors','Aductores'], ['abductors','Abductores'], ['calves','Pantorrillas'], ['abs','Abdomen'],
+  ['serratus-anterior','Serrato'], ['levator-scapulae','Cuello/Escápula'], ['cardio','Cardio']
+];
+
+async function browseMuscleGroup(muscle){
+  const resWrap = document.getElementById('ef_imgResults');
+  if(!muscle){ resWrap.innerHTML=''; return; }
+  resWrap.innerHTML = '<div class="hint">Cargando catálogo completo…</div>';
+  try{
+    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(muscle));
+    const data = await r.json();
+    const results = data.results || [];
+    if(results.length === 0){
+      resWrap.innerHTML = '<div class="hint">Sin ejercicios para ese grupo.</div>';
+      return;
+    }
+    resWrap.innerHTML = `<div class="hint" style="width:100%;margin-bottom:4px;">${results.length} ejercicios disponibles — tocá el que corresponda</div>`;
+    results.forEach(it=>{
+      const el = document.createElement('img');
+      el.src = it.gifUrl;
+      el.className = 'img-result-thumb';
+      el.title = it.name;
+      el.loading = 'lazy';
+      el.onclick = ()=>{
+        editingExerciseImg = it.gifUrl;
+        renderCurrentImg();
+        document.getElementById('ef_ejercicio').value = it.name;
+        document.getElementById('ef_musculo').value = MUSCLE_LABEL_ES[it.muscle] || it.muscle;
+      };
+      resWrap.appendChild(el);
+    });
+  }catch(e){
+    resWrap.innerHTML = '<div class="hint">Error cargando el catálogo. Probá de nuevo.</div>';
+  }
+}
 
 async function searchExerciseImage(){
   const q = document.getElementById('ef_imgSearch').value.trim();
@@ -923,6 +971,15 @@ document.getElementById('ef_searchBtn').onclick = searchExerciseImage;
 document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
   if(e.key==='Enter'){ e.preventDefault(); searchExerciseImage(); }
 });
+(function populateMuscleSelect(){
+  const sel = document.getElementById('ef_muscleBrowse');
+  MUSCLE_GROUPS.forEach(([slug,label])=>{
+    const opt = document.createElement('option');
+    opt.value = slug; opt.textContent = label;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', ()=> browseMuscleGroup(sel.value));
+})();
 
 (async function init(){
   await cloudPing();
