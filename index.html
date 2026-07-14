@@ -325,6 +325,33 @@ input:focus{outline:none; border-color:var(--lime);}
 .day-check-row.checked .box{background:var(--lime); border-color:var(--lime); color:#0B0D10;}
 .day-check-row.checked{border-color:var(--lime-dim);}
 
+/* Mapa corporal */
+.body-zone{
+  fill:var(--surface-2); stroke:var(--line); stroke-width:1.5; cursor:pointer;
+  transition:fill .15s, stroke .15s;
+}
+.body-zone:active{ stroke:var(--lime); }
+.body-zone.trained{ fill:rgba(200,255,61,.5); stroke:var(--lime); }
+.body-zone.selected{ stroke:#fff; stroke-width:2.5; }
+.body-static{ fill:var(--surface-2); stroke:var(--line); stroke-width:1.5; opacity:.6; }
+.muscle-detail-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; margin-top:6px;
+}
+.muscle-detail-title{font-family:'Bebas Neue'; font-size:24px; color:var(--lime); letter-spacing:.5px;}
+.muscle-detail-sub{color:var(--muted); font-size:12px; margin-top:2px; margin-bottom:14px;}
+.muscle-ex-row{
+  display:flex; align-items:center; gap:12px;
+  background:var(--surface-2); border:1px solid var(--line); border-radius:12px;
+  padding:10px; margin-bottom:8px;
+}
+.muscle-ex-row img{width:52px; height:52px; object-fit:cover; border-radius:8px; flex:0 0 auto;}
+.muscle-ex-row .name{font-weight:600; font-size:13px; flex:1;}
+.muscle-ex-row button{
+  flex:0 0 auto; background:var(--lime); color:#0B0D10; border:none; border-radius:8px;
+  padding:8px 12px; font-weight:700; font-size:12px; cursor:pointer;
+}
+
 /* Formulario ejercicio */
 .field-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
 select{
@@ -347,7 +374,7 @@ select{
 <div class="screen active" id="loginScreen">
   <div class="login-hero">
     <img src="icon-512.png" alt="Rutina Gym" class="login-logo">
-    <p>Registro de entrenamiento · 5 días</p>
+    <p>Registro de entrenamiento</p>
   </div>
   <div id="googleSignInBtn" style="display:flex; justify-content:center; margin-bottom:14px;"></div>
   <p class="hint" style="text-align:center;">Iniciá sesión con tu cuenta de Google para guardar tu rutina y tu progreso.</p>
@@ -361,6 +388,12 @@ select{
       <span class="display">RUTINA</span>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
+      <button class="icon-btn" id="bodyMapNavBtn" title="Mi cuerpo">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
+          <circle cx="12" cy="5" r="2.5"></circle>
+          <path d="M12 7.5v6M12 13.5l-3.5 7M12 13.5l3.5 7M8 10h8"></path>
+        </svg>
+      </button>
       <button class="icon-btn" id="shareNavBtn" title="Compartir app">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
           <polyline points="15 4 20 9 15 14"></polyline>
@@ -425,6 +458,30 @@ select{
   <div style="height:80px"></div>
   <div class="save-bar">
     <button class="btn btn-ghost btn-block" id="backFromEditorBtn">← Volver a rutina</button>
+  </div>
+</div>
+
+<!-- ============ MI CUERPO (mapa de músculos trabajados) ============ -->
+<div class="screen" id="bodyMapScreen">
+  <div class="day-title">
+    <div>
+      <div class="display">MI CUERPO</div>
+      <div class="grp">Músculos que trabaja tu rutina actual</div>
+    </div>
+  </div>
+  <div class="days" style="margin-bottom:18px;">
+    <div class="day-chip active" id="bodyViewFrontBtn" style="min-width:90px;">Frente</div>
+    <div class="day-chip" id="bodyViewBackBtn" style="min-width:90px;">Espalda</div>
+  </div>
+  <div id="bodyMapSvgWrap" style="display:flex; justify-content:center; margin-bottom:16px;"></div>
+  <p class="hint" style="text-align:center; margin-bottom:16px;">
+    <span style="color:var(--lime);">●</span> Trabajado en tu rutina &nbsp;&nbsp;
+    <span style="color:var(--surface-2); text-shadow:0 0 0 1px var(--line);">●</span> Sin ejercicios todavía — tocá para agregar
+  </p>
+  <div id="bodyMapDetail"></div>
+  <div style="height:80px"></div>
+  <div class="save-bar">
+    <button class="btn btn-ghost btn-block" id="backFromBodyMapBtn">← Volver a rutina</button>
   </div>
 </div>
 
@@ -1515,13 +1572,6 @@ document.getElementById('ef_addSetBtn').onclick = ()=>{
   renderEfSetsList();
 };
 
-const MUSCLE_LABEL_ES = {
-  pectorals: 'Pecho', lats: 'Espalda', 'upper-back': 'Espalda alta', traps: 'Trapecio', spine: 'Espalda baja',
-  delts: 'Hombro', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales',
-  glutes: 'Glúteos', adductors: 'Aductores', abductors: 'Abductores',
-  calves: 'Pantorrillas', abs: 'Abdomen', forearms: 'Antebrazo', biceps: 'Bíceps', triceps: 'Tríceps',
-  'serratus-anterior': 'Serrato', 'levator-scapulae': 'Cuello/Escápula', cardio: 'Cardio'
-};
 // Los 19 grupos musculares disponibles en la base de ejercicios, para explorar el catálogo completo
 const MUSCLE_GROUPS = [
   ['pectorals','Pecho'], ['lats','Espalda (dorsales)'], ['upper-back','Espalda alta'], ['traps','Trapecio'],
@@ -1530,6 +1580,171 @@ const MUSCLE_GROUPS = [
   ['adductors','Aductores'], ['abductors','Abductores'], ['calves','Pantorrillas'], ['abs','Abdomen'],
   ['serratus-anterior','Serrato'], ['levator-scapulae','Cuello/Escápula'], ['cardio','Cardio']
 ];
+
+/* ============================================================
+   MAPA CORPORAL — qué músculos trabaja la rutina actual
+   ============================================================ */
+function normalizeTxt(s){
+  return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+// Reglas por orden de prioridad: primera coincidencia gana
+const ZONE_KEYWORD_RULES = [
+  ['glutes', ['gluteo','peso muerto sumo']],
+  ['hamstrings', ['isquio','femoral','peso muerto']],
+  ['quads', ['cuadricep','sentadilla','prensa','extension de rodilla','zancada','lunge','squat']],
+  ['calves', ['pantorrilla','gemelo','calf']],
+  ['abs', ['abdom','abs']],
+  ['traps', ['trapecio']],
+  ['lats', ['espalda','dorsal','remo','jalon','dominada','pull']],
+  ['triceps', ['tricep']],
+  ['biceps', ['bicep']],
+  ['delts', ['hombro','elevacion lateral','elevacion frontal']],
+  ['pectorals', ['pecho','press banca','press piso','apertura pectoral']],
+];
+function classifyMuscleZone(ex){
+  const txt = normalizeTxt(`${ex.musculo} ${ex.ejercicio} ${ex.grupo||''}`);
+  for(const [zone, keywords] of ZONE_KEYWORD_RULES){
+    if(keywords.some(k=>txt.includes(k))) return zone;
+  }
+  return null;
+}
+function getTrainedZones(){
+  const zones = new Set();
+  ROUTINE.forEach(ex=>{
+    const z = classifyMuscleZone(ex);
+    if(z) zones.add(z);
+  });
+  return zones;
+}
+
+const BODY_ZONES_FRONT = [
+  ['pectorals', '<rect class="body-zone" data-zone="pectorals" x="66" y="72" width="68" height="42" rx="12"/>'],
+  ['delts', '<ellipse class="body-zone" data-zone="delts" cx="55" cy="80" rx="16" ry="14"/><ellipse class="body-zone" data-zone="delts" cx="145" cy="80" rx="16" ry="14"/>'],
+  ['biceps', '<rect class="body-zone" data-zone="biceps" x="38" y="96" width="20" height="46" rx="9"/><rect class="body-zone" data-zone="biceps" x="142" y="96" width="20" height="46" rx="9"/>'],
+  ['abs', '<rect class="body-zone" data-zone="abs" x="78" y="116" width="44" height="56" rx="9"/>'],
+  ['quads', '<rect class="body-zone" data-zone="quads" x="68" y="198" width="28" height="82" rx="12"/><rect class="body-zone" data-zone="quads" x="104" y="198" width="28" height="82" rx="12"/>'],
+  ['calves', '<rect class="body-zone" data-zone="calves" x="70" y="290" width="24" height="66" rx="10"/><rect class="body-zone" data-zone="calves" x="106" y="290" width="24" height="66" rx="10"/>'],
+];
+const BODY_STATIC_FRONT = `
+  <circle class="body-static" cx="100" cy="32" r="22"/>
+  <rect class="body-static" x="92" y="50" width="16" height="16"/>
+  <path class="body-static" d="M60 66 Q100 56 140 66 L146 176 Q100 190 54 176 Z"/>
+  <rect class="body-static" x="38" y="140" width="20" height="42" rx="9"/>
+  <rect class="body-static" x="142" y="140" width="20" height="42" rx="9"/>
+  <path class="body-static" d="M68 178 Q100 196 132 178 L132 200 Q100 214 68 200 Z"/>
+  <ellipse class="body-static" cx="80" cy="365" rx="15" ry="8"/>
+  <ellipse class="body-static" cx="120" cy="365" rx="15" ry="8"/>
+`;
+
+const BODY_ZONES_BACK = [
+  ['traps', '<path class="body-zone" data-zone="traps" d="M78 56 Q100 50 122 56 L132 88 Q100 78 68 88 Z"/>'],
+  ['lats', '<rect class="body-zone" data-zone="lats" x="66" y="88" width="68" height="72" rx="12"/>'],
+  ['triceps', '<rect class="body-zone" data-zone="triceps" x="38" y="96" width="20" height="46" rx="9"/><rect class="body-zone" data-zone="triceps" x="142" y="96" width="20" height="46" rx="9"/>'],
+  ['glutes', '<rect class="body-zone" data-zone="glutes" x="70" y="176" width="60" height="34" rx="16"/>'],
+  ['hamstrings', '<rect class="body-zone" data-zone="hamstrings" x="68" y="214" width="28" height="66" rx="12"/><rect class="body-zone" data-zone="hamstrings" x="104" y="214" width="28" height="66" rx="12"/>'],
+  ['calves', '<rect class="body-zone" data-zone="calves" x="70" y="290" width="24" height="66" rx="10"/><rect class="body-zone" data-zone="calves" x="106" y="290" width="24" height="66" rx="10"/>'],
+];
+const BODY_STATIC_BACK = `
+  <circle class="body-static" cx="100" cy="32" r="22"/>
+  <rect class="body-static" x="92" y="50" width="16" height="16"/>
+  <path class="body-static" d="M60 66 Q100 56 140 66 L146 176 Q100 190 54 176 Z"/>
+  <rect class="body-static" x="38" y="140" width="20" height="42" rx="9"/>
+  <rect class="body-static" x="142" y="140" width="20" height="42" rx="9"/>
+  <ellipse class="body-static" cx="80" cy="365" rx="15" ry="8"/>
+  <ellipse class="body-static" cx="120" cy="365" rx="15" ry="8"/>
+`;
+
+let bodyMapView = 'front';
+let selectedZone = null;
+
+function showBodyMap(){
+  document.getElementById('entrenoScreen').classList.remove('active');
+  document.getElementById('bodyMapScreen').classList.add('active');
+  selectedZone = null;
+  renderBodyMap();
+}
+function backFromBodyMap(){
+  document.getElementById('bodyMapScreen').classList.remove('active');
+  document.getElementById('entrenoScreen').classList.add('active');
+}
+function setBodyView(view){
+  bodyMapView = view;
+  document.getElementById('bodyViewFrontBtn').classList.toggle('active', view==='front');
+  document.getElementById('bodyViewBackBtn').classList.toggle('active', view==='back');
+  renderBodyMap();
+}
+function renderBodyMap(){
+  const trained = getTrainedZones();
+  const zones = bodyMapView === 'front' ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
+  const staticShapes = bodyMapView === 'front' ? BODY_STATIC_FRONT : BODY_STATIC_BACK;
+  let zonesSvg = '';
+  zones.forEach(([slug, markup])=>{
+    let cls = markup;
+    if(trained.has(slug)) cls = cls.split('class="body-zone"').join('class="body-zone trained"');
+    if(selectedZone === slug) cls = cls.split('class="body-zone').join('class="body-zone selected');
+    zonesSvg += cls;
+  });
+  const svg = `<svg viewBox="0 0 200 380" width="260" height="494" style="max-width:100%;">${staticShapes}${zonesSvg}</svg>`;
+  const wrap = document.getElementById('bodyMapSvgWrap');
+  wrap.innerHTML = svg;
+  wrap.querySelectorAll('.body-zone').forEach(el=>{
+    el.addEventListener('click', ()=> selectZone(el.getAttribute('data-zone')));
+  });
+  if(selectedZone) renderMuscleDetail(selectedZone);
+}
+function selectZone(slug){
+  selectedZone = slug;
+  renderBodyMap();
+}
+async function renderMuscleDetail(slug){
+  const wrap = document.getElementById('bodyMapDetail');
+  const label = MUSCLE_LABEL_ES[slug] || slug;
+  const trained = getTrainedZones().has(slug);
+  wrap.innerHTML = `
+    <div class="muscle-detail-card">
+      <div class="muscle-detail-title">${label}</div>
+      <div class="muscle-detail-sub">${trained ? '✅ Ya lo estás trabajando en tu rutina' : 'Todavía no tenés ejercicios para este músculo'}</div>
+      <div id="muscleExList" class="hint">Cargando ejercicios…</div>
+    </div>
+  `;
+  try{
+    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(slug));
+    const data = await r.json();
+    const results = (data.results || []).slice(0, 10);
+    const list = document.getElementById('muscleExList');
+    if(results.length === 0){ list.textContent = 'Sin ejercicios disponibles para este músculo.'; return; }
+    list.className = '';
+    list.innerHTML = '';
+    results.forEach(it=>{
+      const row = document.createElement('div');
+      row.className = 'muscle-ex-row';
+      row.innerHTML = `
+        <img src="${it.gifUrl}" loading="lazy">
+        <div class="name">${it.name}</div>
+        <button>+ Agregar</button>
+      `;
+      row.querySelector('button').onclick = ()=> addExerciseFromBodyMap(it, label);
+      list.appendChild(row);
+    });
+  }catch(e){
+    document.getElementById('muscleExList').textContent = 'Error cargando ejercicios.';
+  }
+}
+function addExerciseFromBodyMap(it, muscleLabel){
+  openExerciseForm(null, ACTIVE_DAYS[0]);
+  document.getElementById('ef_ejercicio').value = it.name;
+  document.getElementById('ef_musculo').value = muscleLabel;
+  editingExerciseImg = it.gifUrl;
+  renderCurrentImg();
+}
+
+const MUSCLE_LABEL_ES = {
+  pectorals: 'Pecho', lats: 'Espalda', 'upper-back': 'Espalda alta', traps: 'Trapecio', spine: 'Espalda baja',
+  delts: 'Hombro', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales',
+  glutes: 'Glúteos', adductors: 'Aductores', abductors: 'Abductores',
+  calves: 'Pantorrillas', abs: 'Abdomen', forearms: 'Antebrazo', biceps: 'Bíceps', triceps: 'Tríceps',
+  'serratus-anterior': 'Serrato', 'levator-scapulae': 'Cuello/Escápula', cardio: 'Cardio'
+};
 
 async function browseMuscleGroup(muscle){
   const resWrap = document.getElementById('ef_imgResults');
@@ -1667,6 +1882,10 @@ document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
 document.getElementById('editorNavBtn').onclick = showEditor;
 document.getElementById('backFromEditorBtn').onclick = backFromEditor;
 document.getElementById('openCopyModalBtn').onclick = openCopyModal;
+document.getElementById('bodyMapNavBtn').onclick = showBodyMap;
+document.getElementById('backFromBodyMapBtn').onclick = backFromBodyMap;
+document.getElementById('bodyViewFrontBtn').onclick = ()=> setBodyView('front');
+document.getElementById('bodyViewBackBtn').onclick = ()=> setBodyView('back');
 document.getElementById('shareNavBtn').onclick = openShareModal;
 document.getElementById('shareCloseBtn').onclick = closeShareModal;
 document.getElementById('shareWhatsappBtn').onclick = shareViaWhatsapp;
