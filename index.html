@@ -366,7 +366,7 @@ select{
     <label class="field-label">🛡️ Modo administrador: editar la rutina de</label>
     <select id="adminEditTarget"></select>
   </div>
-  <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:16px;">📋 Copiar rutina de otro usuario</button>
+  <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:16px;">📋 Copiar día/rutina</button>
   <div id="editorList"></div>
   <div style="height:80px"></div>
   <div class="save-bar">
@@ -999,21 +999,36 @@ async function openCopyModal(){
   const others = allUsers.filter(u => u.email !== editTargetUser);
   const sel = document.getElementById('copy_sourceUser');
   sel.innerHTML = '';
-  if(others.length === 0){
-    sel.innerHTML = '<option value="">No hay otros usuarios todavía</option>';
-  } else {
-    others.forEach(u=>{
-      const opt = document.createElement('option');
-      opt.value = u.email; opt.textContent = u.name;
-      sel.appendChild(opt);
-    });
-  }
-  document.getElementById('copy_sourceDay').value = 'ALL';
-  document.getElementById('copy_targetDayRow').style.display = 'none';
-  document.getElementById('copy_targetDay').value = currentDay;
-  document.getElementById('copy_warnText').textContent = 'Esto reemplaza la rutina completa actual. No se puede deshacer.';
+
+  const selfOpt = document.createElement('option');
+  selfOpt.value = '__self__';
+  selfOpt.textContent = 'Tu propia rutina (copiar un día a otro)';
+  sel.appendChild(selfOpt);
+
+  others.forEach(u=>{
+    const opt = document.createElement('option');
+    opt.value = u.email; opt.textContent = u.name;
+    sel.appendChild(opt);
+  });
+
+  sel.value = '__self__';
+  updateCopyModeForSource();
   document.getElementById('copyModalBg').classList.add('show');
 }
+function updateCopyModeForSource(){
+  const isSelf = document.getElementById('copy_sourceUser').value === '__self__';
+  const dayAllOpt = document.querySelector('#copy_sourceDay option[value="ALL"]');
+  if(isSelf){
+    dayAllOpt.disabled = true;
+    if(document.getElementById('copy_sourceDay').value === 'ALL'){
+      document.getElementById('copy_sourceDay').value = 'LUN';
+    }
+  } else {
+    dayAllOpt.disabled = false;
+  }
+  document.getElementById('copy_sourceDay').dispatchEvent(new Event('change'));
+}
+document.getElementById('copy_sourceUser').addEventListener('change', updateCopyModeForSource);
 function closeCopyModal(){
   document.getElementById('copyModalBg').classList.remove('show');
 }
@@ -1026,11 +1041,12 @@ document.getElementById('copy_sourceDay').addEventListener('change', function(){
 });
 
 async function performCopy(){
-  const srcUser = document.getElementById('copy_sourceUser').value;
+  const srcUserRaw = document.getElementById('copy_sourceUser').value;
+  const srcUser = srcUserRaw === '__self__' ? editTargetUser : srcUserRaw;
   const srcDay = document.getElementById('copy_sourceDay').value;
   if(!srcUser){ alert('No hay usuario para copiar.'); return; }
 
-  const srcRoutine = await fetchUserRoutine(srcUser);
+  const srcRoutine = srcUserRaw === '__self__' ? ROUTINE : await fetchUserRoutine(srcUser);
   if(!srcRoutine || srcRoutine.length === 0){
     alert('Ese usuario todavía no tiene una rutina guardada.');
     return;
@@ -1041,7 +1057,12 @@ async function performCopy(){
     ROUTINE = ensureIds(cloneRoutineWithNewIds(srcRoutine));
   } else {
     const targetDay = document.getElementById('copy_targetDay').value;
-    if(!confirm(`Esto reemplaza los ejercicios de ${DAY_NAMES[targetDay]} con los de ${DAY_NAMES[srcDay]} de ${srcUser}. ¿Continuar?`)) return;
+    if(srcUserRaw === '__self__' && srcDay === targetDay){
+      alert('Elegí un día destino distinto al de origen.');
+      return;
+    }
+    const origenLabel = srcUserRaw === '__self__' ? 'tu' : `de ${srcUser}`;
+    if(!confirm(`Esto reemplaza los ejercicios de ${DAY_NAMES[targetDay]} con los de ${DAY_NAMES[srcDay]} ${origenLabel}. ¿Continuar?`)) return;
     const dayExercises = srcRoutine
       .filter(e => e.dia === srcDay)
       .map(e => ({...e, dia: targetDay, _id: 'ex_' + Math.random().toString(36).slice(2,9)}));
