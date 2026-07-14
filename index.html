@@ -279,6 +279,37 @@ input:focus{outline:none; border-color:var(--lime);}
 .editor-btn.small{width:26px; height:26px; font-size:10px; padding:0;}
 .editor-btn.small:disabled{opacity:.25; cursor:default;}
 
+/* Explorar rutinas de otros usuarios */
+.browse-user-card{
+  display:flex; align-items:center; gap:14px;
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; margin-bottom:10px; cursor:pointer;
+}
+.browse-user-card:active{border-color:var(--lime);}
+.browse-user-card .avatar{width:46px; height:46px; font-size:16px; flex:0 0 auto;}
+.browse-user-card .name{font-weight:700; font-size:16px;}
+.browse-user-card .meta{color:var(--muted); font-size:12px; margin-top:2px;}
+.browse-user-card .arrow{margin-left:auto; color:var(--muted); font-size:18px;}
+
+/* Resumen amigable de rutina */
+.summary-day-card{
+  background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+  padding:16px; margin-bottom:14px;
+}
+.summary-day-title{
+  font-family:'Bebas Neue'; font-size:22px; color:var(--lime); letter-spacing:.5px; margin-bottom:2px;
+}
+.summary-day-sub{color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;}
+.summary-muscle-group{margin-bottom:10px;}
+.summary-muscle-label{
+  font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--lime-dim); font-weight:700; margin-bottom:5px;
+}
+.summary-ex-item{
+  display:flex; align-items:center; gap:8px; padding:6px 0; font-size:14px; color:var(--text);
+}
+.summary-ex-item .dot{width:5px; height:5px; border-radius:50%; background:var(--lime-dim); flex:0 0 auto;}
+.summary-ex-item .ex-meta{color:var(--muted); font-size:11px; margin-left:auto; font-family:'JetBrains Mono',monospace;}
+
 /* Formulario ejercicio */
 .field-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
 select{
@@ -366,11 +397,41 @@ select{
     <label class="field-label">🛡️ Modo administrador: editar la rutina de</label>
     <select id="adminEditTarget"></select>
   </div>
-  <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:16px;">📋 Copiar día/rutina</button>
+  <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:8px;">📋 Copiar día/rutina</button>
+  <button class="btn btn-ghost btn-block" id="openBrowseBtn" style="margin-bottom:16px;">👀 Ver rutinas de otros usuarios</button>
   <div id="editorList"></div>
   <div style="height:80px"></div>
   <div class="save-bar">
     <button class="btn btn-ghost btn-block" id="backFromEditorBtn">← Volver a rutina</button>
+  </div>
+</div>
+
+<!-- ============ EXPLORAR RUTINAS DE OTROS USUARIOS ============ -->
+<div class="screen" id="browseScreen">
+  <div class="day-title">
+    <div class="display">RUTINAS</div>
+    <div class="grp">Tocá un usuario para ver su rutina</div>
+  </div>
+  <div id="browseList"></div>
+  <div style="height:80px"></div>
+  <div class="save-bar">
+    <button class="btn btn-ghost btn-block" id="backFromBrowseBtn">← Volver al editor</button>
+  </div>
+</div>
+
+<!-- ============ RESUMEN DE RUTINA DE UN USUARIO ============ -->
+<div class="screen" id="summaryScreen">
+  <div class="day-title">
+    <div>
+      <div class="display">RESUMEN</div>
+      <div class="grp" id="summaryUserLabel"></div>
+    </div>
+  </div>
+  <div id="summaryList"></div>
+  <div style="height:100px"></div>
+  <div class="save-bar">
+    <button class="btn btn-ghost" id="backFromSummaryBtn">← Volver</button>
+    <button class="btn btn-lime btn-block" id="useThisRoutineBtn">📋 Copiar esta rutina</button>
   </div>
 </div>
 
@@ -1075,6 +1136,103 @@ async function performCopy(){
   showSync('Rutina copiada ✓');
 }
 
+/* ============================================================
+   EXPLORAR RUTINAS DE OTROS USUARIOS (resumen amigable)
+   ============================================================ */
+async function showBrowseRoutines(){
+  document.getElementById('editorScreen').classList.remove('active');
+  document.getElementById('browseScreen').classList.add('active');
+  const list = document.getElementById('browseList');
+  list.innerHTML = '<p class="hint">Cargando usuarios…</p>';
+
+  const allUsers = await syncUsersList();
+  const others = allUsers.filter(u => u.email !== currentUser);
+  list.innerHTML = '';
+
+  if(others.length === 0){
+    list.innerHTML = '<div class="empty">Todavía no hay otros usuarios en la app.</div>';
+    return;
+  }
+
+  for(const u of others){
+    const routine = await fetchUserRoutine(u.email);
+    const days = new Set(routine.map(e=>e.dia)).size;
+    const card = document.createElement('div');
+    card.className = 'browse-user-card';
+    card.innerHTML = `
+      <div class="avatar">${u.picture ? `<img src="${u.picture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials(u.name)}</div>
+      <div>
+        <div class="name">${u.name}</div>
+        <div class="meta">${routine.length ? `${routine.length} ejercicios · ${days} días` : 'Sin rutina cargada todavía'}</div>
+      </div>
+      <div class="arrow">›</div>
+    `;
+    if(routine.length){
+      card.onclick = ()=> showRoutineSummary(u, routine);
+    } else {
+      card.style.opacity = '.5'; card.style.cursor = 'default';
+    }
+    list.appendChild(card);
+  }
+}
+function backFromBrowse(){
+  document.getElementById('browseScreen').classList.remove('active');
+  document.getElementById('editorScreen').classList.add('active');
+}
+
+let summaryUser = null;
+
+function showRoutineSummary(user, routine){
+  summaryUser = user;
+  document.getElementById('browseScreen').classList.remove('active');
+  document.getElementById('summaryScreen').classList.add('active');
+  document.getElementById('summaryUserLabel').textContent = 'Rutina de ' + user.name;
+
+  const list = document.getElementById('summaryList');
+  list.innerHTML = '';
+  DAY_ORDER.forEach(day=>{
+    const items = routine.filter(e=>e.dia===day);
+    if(items.length === 0) return;
+    const card = document.createElement('div');
+    card.className = 'summary-day-card';
+    const grupo = items[0].grupo || '';
+    card.innerHTML = `
+      <div class="summary-day-title">${DAY_NAMES[day]}</div>
+      <div class="summary-day-sub">${grupo} · ${items.length} ejercicios</div>
+    `;
+    const groups = {};
+    items.forEach(ex=>{ (groups[ex.musculo] = groups[ex.musculo]||[]).push(ex); });
+    Object.keys(groups).forEach(musc=>{
+      const gdiv = document.createElement('div');
+      gdiv.className = 'summary-muscle-group';
+      gdiv.innerHTML = `<div class="summary-muscle-label">${musc.replace(/^\d+\./,'')}</div>`;
+      groups[musc].forEach(ex=>{
+        const row = document.createElement('div');
+        row.className = 'summary-ex-item';
+        row.innerHTML = `<span class="dot"></span><span>${ex.ejercicio}</span><span class="ex-meta">${ex.series}×${ex.rep} · ${ex.peso}kg</span>`;
+        gdiv.appendChild(row);
+      });
+      card.appendChild(gdiv);
+    });
+    list.appendChild(card);
+  });
+}
+function backFromSummary(){
+  document.getElementById('summaryScreen').classList.remove('active');
+  document.getElementById('browseScreen').classList.add('active');
+}
+function useThisRoutine(){
+  document.getElementById('summaryScreen').classList.remove('active');
+  document.getElementById('editorScreen').classList.add('active');
+  openCopyModal().then(()=>{
+    const sel = document.getElementById('copy_sourceUser');
+    if([...sel.options].some(o=>o.value===summaryUser.email)){
+      sel.value = summaryUser.email;
+      updateCopyModeForSource();
+    }
+  });
+}
+
 function renderEditor(){
   const list = document.getElementById('editorList');
   list.innerHTML = '';
@@ -1340,6 +1498,10 @@ document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
 document.getElementById('editorNavBtn').onclick = showEditor;
 document.getElementById('backFromEditorBtn').onclick = backFromEditor;
 document.getElementById('openCopyModalBtn').onclick = openCopyModal;
+document.getElementById('openBrowseBtn').onclick = showBrowseRoutines;
+document.getElementById('backFromBrowseBtn').onclick = backFromBrowse;
+document.getElementById('backFromSummaryBtn').onclick = backFromSummary;
+document.getElementById('useThisRoutineBtn').onclick = useThisRoutine;
 document.getElementById('copy_cancelBtn').onclick = closeCopyModal;
 document.getElementById('copy_confirmBtn').onclick = performCopy;
 document.getElementById('ef_cancelBtn').onclick = closeExerciseForm;
