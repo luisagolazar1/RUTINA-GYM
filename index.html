@@ -310,6 +310,20 @@ input:focus{outline:none; border-color:var(--lime);}
 .summary-ex-item .dot{width:5px; height:5px; border-radius:50%; background:var(--lime-dim); flex:0 0 auto;}
 .summary-ex-item .ex-meta{color:var(--muted); font-size:11px; margin-left:auto; font-family:'JetBrains Mono',monospace;}
 
+/* Configurar días de entrenamiento */
+.day-check-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  padding:13px 16px; margin-bottom:8px; cursor:pointer;
+}
+.day-check-row .label{font-weight:600; font-size:15px;}
+.day-check-row .box{
+  width:24px; height:24px; border-radius:7px; border:1.5px solid var(--line);
+  display:flex; align-items:center; justify-content:center; color:transparent; font-size:14px;
+}
+.day-check-row.checked .box{background:var(--lime); border-color:var(--lime); color:#0B0D10;}
+.day-check-row.checked{border-color:var(--lime-dim);}
+
 /* Formulario ejercicio */
 .field-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; display:block; margin-bottom:4px;}
 select{
@@ -346,6 +360,7 @@ select{
       <span class="display">RUTINA</span>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
+      <button class="icon-btn" id="shareNavBtn" title="Compartir app">↗</button>
       <button class="icon-btn" id="editorNavBtn" title="Editar rutina">✎</button>
       <div class="userpill" id="userPill">
         <div class="avatar" id="pillAvatar">?</div>
@@ -398,7 +413,8 @@ select{
     <select id="adminEditTarget"></select>
   </div>
   <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:8px;">📋 Copiar día/rutina</button>
-  <button class="btn btn-ghost btn-block" id="openBrowseBtn" style="margin-bottom:16px;">👀 Ver rutinas de otros usuarios</button>
+  <button class="btn btn-ghost btn-block" id="openBrowseBtn" style="margin-bottom:8px;">👀 Ver rutinas de otros usuarios</button>
+  <button class="btn btn-ghost btn-block" id="openDaysModalBtn" style="margin-bottom:16px;">📅 Configurar días de entrenamiento</button>
   <div id="editorList"></div>
   <div style="height:80px"></div>
   <div class="save-bar">
@@ -435,6 +451,32 @@ select{
   </div>
 </div>
 
+<!-- ============ MODAL COMPARTIR APP ============ -->
+<div class="modal-bg" id="shareModalBg">
+  <div class="modal">
+    <h3>Compartir Rutina Gym</h3>
+    <p class="hint" style="margin-top:-6px; margin-bottom:16px;">Invitá a alguien a entrenar con vos.</p>
+    <div class="actions" style="flex-direction:column; gap:10px;">
+      <button class="btn btn-lime btn-block" id="shareWhatsappBtn">📱 Compartir por WhatsApp</button>
+      <button class="btn btn-ghost btn-block" id="shareCopyBtn">🔗 Copiar enlace</button>
+      <button class="btn btn-ghost btn-block" id="shareCloseBtn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MODAL CONFIGURAR DÍAS ============ -->
+<div class="modal-bg" id="daysModalBg">
+  <div class="modal">
+    <h3>Días de entrenamiento</h3>
+    <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Elegí de 1 a 7 días. Los que no marques no aparecen en la rutina.</p>
+    <div id="daysCheckList" class="userlist"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="days_cancelBtn">Cancelar</button>
+      <button class="btn btn-lime" id="days_saveBtn">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MODAL COPIAR RUTINA ============ -->
 <div class="modal-bg" id="copyModalBg">
   <div class="modal">
@@ -445,24 +487,11 @@ select{
     </div>
     <div class="row">
       <label class="field-label">Qué copiar</label>
-      <select id="copy_sourceDay">
-        <option value="ALL">Toda la semana (reemplaza tu rutina completa)</option>
-        <option value="LUN">Solo Lunes</option>
-        <option value="MAR">Solo Martes</option>
-        <option value="MIE">Solo Miércoles</option>
-        <option value="JUE">Solo Jueves</option>
-        <option value="VIE">Solo Viernes</option>
-      </select>
+      <select id="copy_sourceDay"></select>
     </div>
     <div class="row" id="copy_targetDayRow" style="display:none;">
       <label class="field-label">Reemplazar en tu día</label>
-      <select id="copy_targetDay">
-        <option value="LUN">Lunes</option>
-        <option value="MAR">Martes</option>
-        <option value="MIE">Miércoles</option>
-        <option value="JUE">Jueves</option>
-        <option value="VIE">Viernes</option>
-      </select>
+      <select id="copy_targetDay"></select>
     </div>
     <p class="hint" id="copy_warnText">Esto reemplaza tu rutina completa actual. No se puede deshacer.</p>
     <div class="actions">
@@ -478,13 +507,7 @@ select{
     <h3 id="exerciseFormTitle">Editar ejercicio</h3>
     <div class="row">
       <label class="field-label">Día</label>
-      <select id="ef_dia">
-        <option value="LUN">Lunes</option>
-        <option value="MAR">Martes</option>
-        <option value="MIE">Miércoles</option>
-        <option value="JUE">Jueves</option>
-        <option value="VIE">Viernes</option>
-      </select>
+      <select id="ef_dia"></select>
     </div>
     <div class="row">
       <label class="field-label">Grupo muscular</label>
@@ -564,8 +587,10 @@ function ensureIds(routine){
 }
 ensureIds(ROUTINE);
 
-const DAY_NAMES = {LUN:'Lunes', MAR:'Martes', MIE:'Miércoles', JUE:'Jueves', VIE:'Viernes'};
-const DAY_ORDER = ['LUN','MAR','MIE','JUE','VIE'];
+const DAY_NAMES = {LUN:'Lunes', MAR:'Martes', MIE:'Miércoles', JUE:'Jueves', VIE:'Viernes', SAB:'Sábado', DOM:'Domingo'};
+const ALL_DAYS = ['LUN','MAR','MIE','JUE','VIE','SAB','DOM'];
+let ACTIVE_DAYS = ['LUN','MAR','MIE','JUE','VIE']; // se sobreescribe con la config de cada usuario
+const DAY_ORDER = ALL_DAYS; // alias por compatibilidad con código existente
 
 /* Mapeo ejercicio -> GIF por defecto (se resuelve en el momento, no depende de lo guardado) */
 const DEFAULT_IMAGE_BY_NAME = {"Flexiones tríceps": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/close-grip-push-up.gif", "Press Banca Superior Barra libre": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/barbell-bench-press.gif", "Press Piso Plano": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/floor-fly-with-barbell.gif", "Apertura Pectoral Pole Alta 1 Mano": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/cable-one-arm-decline-chest-fly.gif", "Press Hombro Maquina sentado": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/lever-shoulder-press.gif", "Elevación Frontal y Laterales": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/delts/dumbbell-lateral-to-front-raise.gif", "Flexión Tríceps con Mancuernas": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/dumbbell-lying-triceps-extension.gif", "Tríceps Polea Alta 1 Mano  Oblicuo": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/triceps/cable-standing-one-arm-triceps-extension.gif", "Remo Mancuernas Libre Prono": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/dumbbell-bent-over-row.gif", "Bíceps Barra Z de Pie": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/ez-barbell-standing-wide-grip-biceps-curl.gif", "Jalon dorsal": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-pulldown.gif", "Jalon curl concentrado bicep": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-concentration-curl.gif", "Remo Horizontal Maquina Bilateral": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/upper-back/lever-seated-row.gif", "Remo polea lat push down": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/lats/cable-straight-arm-pulldown.gif", "Bíceps Banco Inclinado 2 db": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-incline-curl.gif", "Bíceps Alterno 2 db de Pie y Sentado": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-alternate-biceps-curl.gif", "Lunges a aquats": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/dumbbell-lunge.gif", "Sentadilla Multipower": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/smith-chair-squat.gif", "Sentadilla Bulgara": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/dumbbell-single-leg-split-squat.gif", "Peso Muerto sumo": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/barbell-sumo-deadlift.gif", "Extensión Rodilla Máquina una pierna": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/quads/lever-leg-extension.gif", "Prensa Horizontal": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/glutes/lever-horizontal-one-leg-press.gif", "Apertura Poleas Bajas": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/pectorals/cable-low-fly.gif", "Bíceps 2 Db Martillo Manos Juntas": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/dumbbell-hammer-curl.gif", "Bíceps Polea Baja. Diferentes agarres": "https://cdn.jsdelivr.net/gh/JahelCuadrado/ExerciseGymGifsDB@v1.1.0/biceps/cable-curl.gif"};
@@ -726,6 +751,33 @@ let sessionState = {}; // { exerciseKey: {done, sets:[{reps,peso}]} }
 function exKey(ex, idx){ return `${ex.dia}_${idx}`; }
 function initials(name){ return (name||'?').trim().slice(0,2).toUpperCase(); }
 
+async function loadActiveDays(user){
+  try{
+    const r = await fetch('/api/settings?user=' + encodeURIComponent(user));
+    if(r.ok){
+      const data = await r.json();
+      if(Array.isArray(data.activeDays) && data.activeDays.length){
+        ACTIVE_DAYS = ALL_DAYS.filter(d => data.activeDays.includes(d));
+        return;
+      }
+    }
+  }catch(e){}
+  ACTIVE_DAYS = ['LUN','MAR','MIE','JUE','VIE'];
+}
+
+async function persistActiveDays(user, days){
+  const cleanDays = ALL_DAYS.filter(d => days.includes(d));
+  const finalDays = cleanDays.length ? cleanDays : ['LUN'];
+  if(user === currentUser) ACTIVE_DAYS = finalDays;
+  try{
+    await fetch('/api/settings?user=' + encodeURIComponent(user), {
+      method:'POST', headers:{'Content-Type':'application/json', ...authHeader()},
+      body: JSON.stringify({activeDays: finalDays})
+    });
+    showSync('Días actualizados ✓');
+  }catch(e){ showSync('Sin conexión, no se guardó'); }
+}
+
 async function enterApp(){
   document.getElementById('pillName').textContent = currentUserName;
   document.getElementById('pillAvatar').innerHTML = currentUserPicture
@@ -738,8 +790,10 @@ async function enterApp(){
   const cloudEntries = await cloudPull(currentUser);
   if(cloudEntries) saveLog(currentUser, cloudEntries);
 
+  await loadActiveDays(currentUser);
   await loadRoutine(currentUser);
 
+  if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
   renderDayChips();
   selectDay(currentDay);
 }
@@ -750,7 +804,7 @@ async function enterApp(){
 function renderDayChips(){
   const wrap = document.getElementById('dayChips');
   wrap.innerHTML = '';
-  DAY_ORDER.forEach(d=>{
+  ACTIVE_DAYS.forEach(d=>{
     const chip = document.createElement('div');
     chip.className = 'day-chip' + (d===currentDay?' active':'');
     chip.innerHTML = `<span>${d}</span><small>${DAY_NAMES[d].slice(0,3)}</small>`;
@@ -1073,6 +1127,8 @@ async function openCopyModal(){
   });
 
   sel.value = '__self__';
+  populateDaySelect(document.getElementById('copy_sourceDay'), {includeAll:true});
+  populateDaySelect(document.getElementById('copy_targetDay'), {includeAll:false});
   updateCopyModeForSource();
   document.getElementById('copyModalBg').classList.add('show');
 }
@@ -1082,7 +1138,7 @@ function updateCopyModeForSource(){
   if(isSelf){
     dayAllOpt.disabled = true;
     if(document.getElementById('copy_sourceDay').value === 'ALL'){
-      document.getElementById('copy_sourceDay').value = 'LUN';
+      document.getElementById('copy_sourceDay').value = ACTIVE_DAYS[0];
     }
   } else {
     dayAllOpt.disabled = false;
@@ -1139,6 +1195,95 @@ async function performCopy(){
 /* ============================================================
    EXPLORAR RUTINAS DE OTROS USUARIOS (resumen amigable)
    ============================================================ */
+/* ============================================================
+   CONFIGURAR DÍAS DE ENTRENAMIENTO
+   ============================================================ */
+/* ============================================================
+   COMPARTIR APP
+   ============================================================ */
+function openShareModal(){
+  document.getElementById('shareModalBg').classList.add('show');
+}
+function closeShareModal(){
+  document.getElementById('shareModalBg').classList.remove('show');
+}
+function shareViaWhatsapp(){
+  const url = window.location.origin + window.location.pathname;
+  const text = `💪 Te invito a usar Rutina Gym para llevar el registro de tus entrenamientos: ${url}`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  closeShareModal();
+}
+async function shareCopyLink(){
+  const url = window.location.origin + window.location.pathname;
+  try{
+    await navigator.clipboard.writeText(url);
+    showSync('Enlace copiado ✓');
+  }catch(e){
+    // Fallback para navegadores sin permiso de portapapeles
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    try{ document.execCommand('copy'); showSync('Enlace copiado ✓'); }
+    catch(err){ showSync('No se pudo copiar, copialo manual'); }
+    document.body.removeChild(ta);
+  }
+  closeShareModal();
+}
+
+let daysBeingEdited = [];
+
+async function openDaysModal(){
+  if(editTargetUser === currentUser){
+    daysBeingEdited = [...ACTIVE_DAYS];
+  } else {
+    try{
+      const r = await fetch('/api/settings?user=' + encodeURIComponent(editTargetUser));
+      const data = r.ok ? await r.json() : {activeDays:['LUN','MAR','MIE','JUE','VIE']};
+      daysBeingEdited = ALL_DAYS.filter(d => (data.activeDays||[]).includes(d));
+      if(daysBeingEdited.length===0) daysBeingEdited = ['LUN','MAR','MIE','JUE','VIE'];
+    }catch(e){ daysBeingEdited = ['LUN','MAR','MIE','JUE','VIE']; }
+  }
+  renderDaysCheckList();
+  document.getElementById('daysModalBg').classList.add('show');
+}
+function closeDaysModal(){
+  document.getElementById('daysModalBg').classList.remove('show');
+}
+function renderDaysCheckList(){
+  const wrap = document.getElementById('daysCheckList');
+  wrap.innerHTML = '';
+  ALL_DAYS.forEach(d=>{
+    const checked = daysBeingEdited.includes(d);
+    const row = document.createElement('div');
+    row.className = 'day-check-row' + (checked ? ' checked' : '');
+    row.innerHTML = `<span class="label">${DAY_NAMES[d]}</span><span class="box">✓</span>`;
+    row.onclick = ()=>{
+      if(daysBeingEdited.includes(d)){
+        daysBeingEdited = daysBeingEdited.filter(x=>x!==d);
+      } else {
+        daysBeingEdited.push(d);
+      }
+      renderDaysCheckList();
+    };
+    wrap.appendChild(row);
+  });
+}
+async function saveDaysModal(){
+  if(daysBeingEdited.length === 0){
+    alert('Elegí al menos un día.');
+    return;
+  }
+  await persistActiveDays(editTargetUser, daysBeingEdited);
+  closeDaysModal();
+  if(editTargetUser === currentUser){
+    if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
+    renderDayChips();
+    selectDay(currentDay);
+  }
+  renderEditor();
+}
+
 async function showBrowseRoutines(){
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('browseScreen').classList.add('active');
@@ -1236,13 +1381,15 @@ function useThisRoutine(){
 function renderEditor(){
   const list = document.getElementById('editorList');
   list.innerHTML = '';
-  DAY_ORDER.forEach(day=>{
+  const daysWithData = new Set(ROUTINE.map(e=>e.dia));
+  const daysToShow = ALL_DAYS.filter(d => ACTIVE_DAYS.includes(d) || daysWithData.has(d));
+  daysToShow.forEach(day=>{
     const items = ROUTINE.filter(e=>e.dia===day);
     const sec = document.createElement('div');
     sec.className = 'editor-day-section';
     const title = document.createElement('div');
     title.className = 'editor-day-title';
-    title.textContent = DAY_NAMES[day];
+    title.textContent = DAY_NAMES[day] + (ACTIVE_DAYS.includes(day) ? '' : ' (día no activo)');
     sec.appendChild(title);
     items.forEach((ex, i)=>{
       const img = exerciseImageUrl(ex);
@@ -1282,11 +1429,27 @@ let editingExerciseImg = null;
 
 let editingSets = [];
 
+function populateDaySelect(sel, {includeAll=false, extraDay=null}={}){
+  sel.innerHTML = '';
+  if(includeAll){
+    const opt = document.createElement('option');
+    opt.value = 'ALL'; opt.textContent = 'Toda la semana (reemplaza tu rutina completa)';
+    sel.appendChild(opt);
+  }
+  const days = extraDay && !ACTIVE_DAYS.includes(extraDay) ? [...ACTIVE_DAYS, extraDay] : ACTIVE_DAYS;
+  ALL_DAYS.filter(d=>days.includes(d)).forEach(d=>{
+    const opt = document.createElement('option');
+    opt.value = d; opt.textContent = (includeAll?'Solo ':'') + DAY_NAMES[d];
+    sel.appendChild(opt);
+  });
+}
+
 function openExerciseForm(id, presetDay){
   editingExerciseId = id;
   const ex = id ? ROUTINE.find(e=>e._id===id) : null;
   document.getElementById('exerciseFormTitle').textContent = ex ? 'Editar ejercicio' : 'Nuevo ejercicio';
-  document.getElementById('ef_dia').value = ex ? ex.dia : (presetDay || 'LUN');
+  populateDaySelect(document.getElementById('ef_dia'), {extraDay: ex ? ex.dia : presetDay});
+  document.getElementById('ef_dia').value = ex ? ex.dia : (presetDay || ACTIVE_DAYS[0]);
   document.getElementById('ef_musculo').value = ex ? ex.musculo : '';
   document.getElementById('ef_ejercicio').value = ex ? ex.ejercicio : '';
 
@@ -1498,7 +1661,14 @@ document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
 document.getElementById('editorNavBtn').onclick = showEditor;
 document.getElementById('backFromEditorBtn').onclick = backFromEditor;
 document.getElementById('openCopyModalBtn').onclick = openCopyModal;
+document.getElementById('shareNavBtn').onclick = openShareModal;
+document.getElementById('shareCloseBtn').onclick = closeShareModal;
+document.getElementById('shareWhatsappBtn').onclick = shareViaWhatsapp;
+document.getElementById('shareCopyBtn').onclick = shareCopyLink;
 document.getElementById('openBrowseBtn').onclick = showBrowseRoutines;
+document.getElementById('openDaysModalBtn').onclick = openDaysModal;
+document.getElementById('days_cancelBtn').onclick = closeDaysModal;
+document.getElementById('days_saveBtn').onclick = saveDaysModal;
 document.getElementById('backFromBrowseBtn').onclick = backFromBrowse;
 document.getElementById('backFromSummaryBtn').onclick = backFromSummary;
 document.getElementById('useThisRoutineBtn').onclick = useThisRoutine;
