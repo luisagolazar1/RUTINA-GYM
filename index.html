@@ -1589,10 +1589,12 @@ function normalizeTxt(s){
 }
 // Reglas por orden de prioridad: primera coincidencia gana
 const ZONE_KEYWORD_RULES = [
+  ['adductors', ['aductor']],
   ['glutes', ['gluteo','peso muerto sumo']],
   ['hamstrings', ['isquio','femoral','peso muerto']],
-  ['quads', ['cuadricep','sentadilla','prensa','extension de rodilla','zancada','lunge','squat']],
+  ['quads', ['cuadricep','sentadilla','prensa','extension de rodilla','zancada','lunge','squat','bulgara']],
   ['calves', ['pantorrilla','gemelo','calf']],
+  ['forearms', ['antebrazo']],
   ['abs', ['abdom','abs']],
   ['traps', ['trapecio']],
   ['lats', ['espalda','dorsal','remo','jalon','dominada','pull']],
@@ -1618,40 +1620,39 @@ function getTrainedZones(){
 }
 
 const BODY_ZONES_FRONT = [
-  ['pectorals', '<rect class="body-zone" data-zone="pectorals" x="66" y="72" width="68" height="42" rx="12"/>'],
-  ['delts', '<ellipse class="body-zone" data-zone="delts" cx="55" cy="80" rx="16" ry="14"/><ellipse class="body-zone" data-zone="delts" cx="145" cy="80" rx="16" ry="14"/>'],
-  ['biceps', '<rect class="body-zone" data-zone="biceps" x="38" y="96" width="20" height="46" rx="9"/><rect class="body-zone" data-zone="biceps" x="142" y="96" width="20" height="46" rx="9"/>'],
-  ['abs', '<rect class="body-zone" data-zone="abs" x="78" y="116" width="44" height="56" rx="9"/>'],
-  ['quads', '<rect class="body-zone" data-zone="quads" x="68" y="198" width="28" height="82" rx="12"/><rect class="body-zone" data-zone="quads" x="104" y="198" width="28" height="82" rx="12"/>'],
-  ['calves', '<rect class="body-zone" data-zone="calves" x="70" y="290" width="24" height="66" rx="10"/><rect class="body-zone" data-zone="calves" x="106" y="290" width="24" height="66" rx="10"/>'],
+  ['pectorals', '<path class="body-zone" data-zone="pectorals" d="M69 74 Q100 66 131 74 L129 112 Q100 122 71 112 Z"/>'],
+  ['delts', '<path class="body-zone" data-zone="delts" d="M40 78 Q56 64 68 76 L66 104 Q48 106 38 92 Z"/><path class="body-zone" data-zone="delts" d="M160 78 Q144 64 132 76 L134 104 Q152 106 162 92 Z"/>'],
+  ['biceps', '<path class="body-zone" data-zone="biceps" d="M36 96 Q52 94 56 104 L54 140 Q44 146 36 138 Z"/><path class="body-zone" data-zone="biceps" d="M164 96 Q148 94 144 104 L146 140 Q156 146 164 138 Z"/>'],
+  ['forearms', '<path class="body-zone" data-zone="forearms" d="M33 142 Q46 140 52 146 L48 182 Q40 186 32 180 Z"/><path class="body-zone" data-zone="forearms" d="M167 142 Q154 140 148 146 L152 182 Q160 186 168 180 Z"/>'],
+  ['abs', '<rect class="body-zone" data-zone="abs" x="78" y="116" width="44" height="58" rx="10"/>'],
+  ['quads', '<path class="body-zone" data-zone="quads" d="M66 198 Q80 194 96 198 L94 276 Q80 284 68 276 Z"/><path class="body-zone" data-zone="quads" d="M134 198 Q120 194 104 198 L106 276 Q120 284 132 276 Z"/>'],
+  ['adductors', '<path class="body-zone" data-zone="adductors" d="M92 200 Q100 198 108 200 L105 250 Q100 254 95 250 Z"/>'],
+  ['calves', '<path class="body-zone" data-zone="calves" d="M70 292 Q82 288 94 292 L92 352 Q82 360 72 352 Z"/><path class="body-zone" data-zone="calves" d="M130 292 Q118 288 106 292 L108 352 Q118 360 128 352 Z"/>'],
 ];
 const BODY_STATIC_FRONT = `
-  <circle class="body-static" cx="100" cy="32" r="22"/>
-  <rect class="body-static" x="92" y="50" width="16" height="16"/>
-  <path class="body-static" d="M60 66 Q100 56 140 66 L146 176 Q100 190 54 176 Z"/>
-  <rect class="body-static" x="38" y="140" width="20" height="42" rx="9"/>
-  <rect class="body-static" x="142" y="140" width="20" height="42" rx="9"/>
-  <path class="body-static" d="M68 178 Q100 196 132 178 L132 200 Q100 214 68 200 Z"/>
-  <ellipse class="body-static" cx="80" cy="365" rx="15" ry="8"/>
-  <ellipse class="body-static" cx="120" cy="365" rx="15" ry="8"/>
+  <circle class="body-static" cx="100" cy="30" r="20"/>
+  <rect class="body-static" x="92" y="48" width="16" height="14"/>
+  <path class="body-static" d="M62 64 Q100 54 138 64 L142 178 Q100 196 58 178 Z"/>
+  <path class="body-static" d="M70 178 Q100 194 130 178 L130 202 Q100 216 70 202 Z"/>
+  <ellipse class="body-static" cx="80" cy="360" rx="14" ry="7"/>
+  <ellipse class="body-static" cx="120" cy="360" rx="14" ry="7"/>
 `;
 
 const BODY_ZONES_BACK = [
-  ['traps', '<path class="body-zone" data-zone="traps" d="M78 56 Q100 50 122 56 L132 88 Q100 78 68 88 Z"/>'],
-  ['lats', '<rect class="body-zone" data-zone="lats" x="66" y="88" width="68" height="72" rx="12"/>'],
-  ['triceps', '<rect class="body-zone" data-zone="triceps" x="38" y="96" width="20" height="46" rx="9"/><rect class="body-zone" data-zone="triceps" x="142" y="96" width="20" height="46" rx="9"/>'],
-  ['glutes', '<rect class="body-zone" data-zone="glutes" x="70" y="176" width="60" height="34" rx="16"/>'],
-  ['hamstrings', '<rect class="body-zone" data-zone="hamstrings" x="68" y="214" width="28" height="66" rx="12"/><rect class="body-zone" data-zone="hamstrings" x="104" y="214" width="28" height="66" rx="12"/>'],
-  ['calves', '<rect class="body-zone" data-zone="calves" x="70" y="290" width="24" height="66" rx="10"/><rect class="body-zone" data-zone="calves" x="106" y="290" width="24" height="66" rx="10"/>'],
+  ['traps', '<path class="body-zone" data-zone="traps" d="M76 54 Q100 46 124 54 L134 92 Q100 78 66 92 Z"/>'],
+  ['lats', '<path class="body-zone" data-zone="lats" d="M64 92 Q100 100 136 92 L130 158 Q100 172 70 158 Z"/>'],
+  ['triceps', '<path class="body-zone" data-zone="triceps" d="M36 96 Q52 94 56 104 L54 140 Q44 146 36 138 Z"/><path class="body-zone" data-zone="triceps" d="M164 96 Q148 94 144 104 L146 140 Q156 146 164 138 Z"/>'],
+  ['forearms', '<path class="body-zone" data-zone="forearms" d="M33 142 Q46 140 52 146 L48 182 Q40 186 32 180 Z"/><path class="body-zone" data-zone="forearms" d="M167 142 Q154 140 148 146 L152 182 Q160 186 168 180 Z"/>'],
+  ['glutes', '<path class="body-zone" data-zone="glutes" d="M68 174 Q100 166 132 174 L129 208 Q100 220 71 208 Z"/>'],
+  ['hamstrings', '<path class="body-zone" data-zone="hamstrings" d="M66 212 Q80 208 96 212 L94 278 Q80 286 68 278 Z"/><path class="body-zone" data-zone="hamstrings" d="M134 212 Q120 208 104 212 L106 278 Q120 286 132 278 Z"/>'],
+  ['calves', '<path class="body-zone" data-zone="calves" d="M70 292 Q82 288 94 292 L92 352 Q82 360 72 352 Z"/><path class="body-zone" data-zone="calves" d="M130 292 Q118 288 106 292 L108 352 Q118 360 128 352 Z"/>'],
 ];
 const BODY_STATIC_BACK = `
-  <circle class="body-static" cx="100" cy="32" r="22"/>
-  <rect class="body-static" x="92" y="50" width="16" height="16"/>
-  <path class="body-static" d="M60 66 Q100 56 140 66 L146 176 Q100 190 54 176 Z"/>
-  <rect class="body-static" x="38" y="140" width="20" height="42" rx="9"/>
-  <rect class="body-static" x="142" y="140" width="20" height="42" rx="9"/>
-  <ellipse class="body-static" cx="80" cy="365" rx="15" ry="8"/>
-  <ellipse class="body-static" cx="120" cy="365" rx="15" ry="8"/>
+  <circle class="body-static" cx="100" cy="30" r="20"/>
+  <rect class="body-static" x="92" y="48" width="16" height="14"/>
+  <path class="body-static" d="M62 64 Q100 54 138 64 L142 178 Q100 196 58 178 Z"/>
+  <ellipse class="body-static" cx="80" cy="360" rx="14" ry="7"/>
+  <ellipse class="body-static" cx="120" cy="360" rx="14" ry="7"/>
 `;
 
 let bodyMapView = 'front';
