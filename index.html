@@ -253,6 +253,7 @@ input:focus{outline:none; border-color:var(--lime);}
 .icon-btn{
   width:38px; height:38px; border-radius:10px; border:1px solid var(--line);
   background:var(--surface-2); color:var(--text); font-size:16px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
 }
 
 /* Editor de rutina */
@@ -360,7 +361,12 @@ select{
       <span class="display">RUTINA</span>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <button class="icon-btn" id="shareNavBtn" title="Compartir app">↗</button>
+      <button class="icon-btn" id="shareNavBtn" title="Compartir app">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
+          <polyline points="15 4 20 9 15 14"></polyline>
+          <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
+        </svg>
+      </button>
       <button class="icon-btn" id="editorNavBtn" title="Editar rutina">✎</button>
       <div class="userpill" id="userPill">
         <div class="avatar" id="pillAvatar">?</div>
