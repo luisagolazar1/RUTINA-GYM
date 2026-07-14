@@ -331,8 +331,11 @@ input:focus{outline:none; border-color:var(--lime);}
   transition:fill .15s, stroke .15s;
 }
 .body-zone:active{ stroke:var(--lime); }
-.body-zone.trained{ fill:rgba(200,255,61,.5); stroke:var(--lime); }
-.body-zone.selected{ stroke:#fff; stroke-width:2.5; }
+.body-zone.trained{
+  fill:currentColor; fill-opacity:.5; stroke:currentColor; stroke-width:1.8;
+  filter:url(#muscleGlow);
+}
+.body-zone.selected{ stroke:#fff !important; stroke-width:2.8; }
 .body-static{ fill:var(--surface-2); stroke:var(--line); stroke-width:1.5; opacity:.6; }
 .muscle-detail-card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -475,8 +478,8 @@ select{
   </div>
   <div id="bodyMapSvgWrap" style="display:flex; justify-content:center; margin-bottom:16px;"></div>
   <p class="hint" style="text-align:center; margin-bottom:16px;">
-    <span style="color:var(--lime);">●</span> Trabajado en tu rutina &nbsp;&nbsp;
-    <span style="color:var(--surface-2); text-shadow:0 0 0 1px var(--line);">●</span> Sin ejercicios todavía — tocá para agregar
+    ✨ Cada color = un grupo muscular trabajado &nbsp;&nbsp;
+    <span style="color:var(--surface-2); text-shadow:0 0 0 1px var(--line);">●</span> Apagado = sin ejercicios todavía
   </p>
   <div id="bodyMapDetail"></div>
   <div style="height:80px"></div>
@@ -1692,6 +1695,12 @@ const BODY_STATIC_BACK = `
 let bodyMapView = 'front';
 let selectedZone = null;
 
+const ZONE_COLORS = {
+  pectorals: '#C8FF3D', delts: '#FF9F40', biceps: '#4DD9FF', triceps: '#FF4DA6',
+  forearms: '#B388FF', abs: '#FFE14D', adductors: '#FF6F91', quads: '#4D7CFF',
+  hamstrings: '#35D0BA', calves: '#FF7A45', traps: '#FF3D3D', lats: '#FFB020', glutes: '#A96BFF'
+};
+
 function showBodyMap(){
   document.getElementById('entrenoScreen').classList.remove('active');
   document.getElementById('bodyMapScreen').classList.add('active');
@@ -1715,11 +1724,18 @@ function renderBodyMap(){
   let zonesSvg = '';
   zones.forEach(([slug, markup])=>{
     let cls = markup;
-    if(trained.has(slug)) cls = cls.split('class="body-zone"').join('class="body-zone trained"');
+    if(trained.has(slug)){
+      cls = cls.split('class="body-zone"').join('class="body-zone trained"');
+      cls = cls.split(`data-zone="${slug}"`).join(`data-zone="${slug}" style="color:${ZONE_COLORS[slug]||'#C8FF3D'}"`);
+    }
     if(selectedZone === slug) cls = cls.split('class="body-zone').join('class="body-zone selected');
     zonesSvg += cls;
   });
-  const svg = `<svg viewBox="0 0 220 440" width="240" height="480" style="max-width:100%;">${staticShapes}${zonesSvg}</svg>`;
+  const glowDefs = `<defs><filter id="muscleGlow" x="-60%" y="-60%" width="220%" height="220%">
+    <feGaussianBlur stdDeviation="3.2" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter></defs>`;
+  const svg = `<svg viewBox="0 0 220 440" width="240" height="480" style="max-width:100%;">${glowDefs}${staticShapes}${zonesSvg}</svg>`;
   const wrap = document.getElementById('bodyMapSvgWrap');
   wrap.innerHTML = svg;
   wrap.querySelectorAll('.body-zone').forEach(el=>{
