@@ -1620,39 +1620,73 @@ function getTrainedZones(){
 }
 
 const BODY_ZONES_FRONT = [
-  ['pectorals', '<path class="body-zone" data-zone="pectorals" d="M69 74 Q100 66 131 74 L129 112 Q100 122 71 112 Z"/>'],
-  ['delts', '<path class="body-zone" data-zone="delts" d="M40 78 Q56 64 68 76 L66 104 Q48 106 38 92 Z"/><path class="body-zone" data-zone="delts" d="M160 78 Q144 64 132 76 L134 104 Q152 106 162 92 Z"/>'],
-  ['biceps', '<path class="body-zone" data-zone="biceps" d="M36 96 Q52 94 56 104 L54 140 Q44 146 36 138 Z"/><path class="body-zone" data-zone="biceps" d="M164 96 Q148 94 144 104 L146 140 Q156 146 164 138 Z"/>'],
-  ['forearms', '<path class="body-zone" data-zone="forearms" d="M33 142 Q46 140 52 146 L48 182 Q40 186 32 180 Z"/><path class="body-zone" data-zone="forearms" d="M167 142 Q154 140 148 146 L152 182 Q160 186 168 180 Z"/>'],
-  ['abs', '<rect class="body-zone" data-zone="abs" x="78" y="116" width="44" height="58" rx="10"/>'],
-  ['quads', '<path class="body-zone" data-zone="quads" d="M66 198 Q80 194 96 198 L94 276 Q80 284 68 276 Z"/><path class="body-zone" data-zone="quads" d="M134 198 Q120 194 104 198 L106 276 Q120 284 132 276 Z"/>'],
-  ['adductors', '<path class="body-zone" data-zone="adductors" d="M92 200 Q100 198 108 200 L105 250 Q100 254 95 250 Z"/>'],
-  ['calves', '<path class="body-zone" data-zone="calves" d="M70 292 Q82 288 94 292 L92 352 Q82 360 72 352 Z"/><path class="body-zone" data-zone="calves" d="M130 292 Q118 288 106 292 L108 352 Q118 360 128 352 Z"/>'],
+  ['pectorals',
+    '<path class="body-zone" data-zone="pectorals" d="M108 78 C 96 70, 76 72, 68 84 C 62 96, 64 112, 74 122 C 86 130, 102 126, 108 116 Z"/>'+
+    '<path class="body-zone" data-zone="pectorals" d="M112 78 C 124 70, 144 72, 152 84 C 158 96, 156 112, 146 122 C 134 130, 118 126, 112 116 Z"/>'],
+  ['delts',
+    '<path class="body-zone" data-zone="delts" d="M42 84 Q56 66 70 76 C 70 90, 68 104, 62 114 Q48 112, 40 98 Z"/>'+
+    '<path class="body-zone" data-zone="delts" d="M178 84 Q164 66 150 76 C 150 90, 152 104, 158 114 Q172 112, 180 98 Z"/>'],
+  ['biceps',
+    '<path class="body-zone" data-zone="biceps" d="M38 104 Q56 100 60 114 C 62 128, 58 146, 50 156 Q38 154, 34 140 C 32 128, 34 114, 38 104 Z"/>'+
+    '<path class="body-zone" data-zone="biceps" d="M182 104 Q164 100 160 114 C 158 128, 162 146, 170 156 Q182 154, 186 140 C 188 128, 186 114, 182 104 Z"/>'],
+  ['forearms',
+    '<path class="body-zone" data-zone="forearms" d="M35 158 Q48 156 53 164 L48 204 Q40 208 32 202 Z"/>'+
+    '<path class="body-zone" data-zone="forearms" d="M185 158 Q172 156 167 164 L172 204 Q180 208 188 202 Z"/>'],
+  ['abs',
+    '<rect class="body-zone" data-zone="abs" x="97" y="132" width="12" height="16" rx="3"/>'+
+    '<rect class="body-zone" data-zone="abs" x="111" y="132" width="12" height="16" rx="3"/>'+
+    '<rect class="body-zone" data-zone="abs" x="97" y="150" width="12" height="16" rx="3"/>'+
+    '<rect class="body-zone" data-zone="abs" x="111" y="150" width="12" height="16" rx="3"/>'+
+    '<rect class="body-zone" data-zone="abs" x="97" y="168" width="12" height="16" rx="3"/>'+
+    '<rect class="body-zone" data-zone="abs" x="111" y="168" width="12" height="16" rx="3"/>'],
+  ['adductors', '<path class="body-zone" data-zone="adductors" d="M102 220 Q110 217 118 220 L114 272 Q110 276 106 272 Z"/>'],
+  ['quads',
+    '<path class="body-zone" data-zone="quads" d="M70 222 C 60 226, 56 244, 58 268 C 60 292, 66 308, 78 312 C 90 308, 96 294, 98 272 C 100 250, 96 230, 88 222 C 82 218, 76 218, 70 222 Z"/>'+
+    '<path class="body-zone" data-zone="quads" d="M150 222 C 160 226, 164 244, 162 268 C 160 292, 154 308, 142 312 C 130 308, 124 294, 122 272 C 120 250, 124 230, 132 222 C 138 218, 144 218, 150 222 Z"/>'],
+  ['calves',
+    '<path class="body-zone" data-zone="calves" d="M64 330 Q78 326 92 330 L88 388 Q78 396 68 388 Z"/>'+
+    '<path class="body-zone" data-zone="calves" d="M156 330 Q142 326 128 330 L132 388 Q142 396 152 388 Z"/>'],
 ];
 const BODY_STATIC_FRONT = `
-  <circle class="body-static" cx="100" cy="30" r="20"/>
-  <rect class="body-static" x="92" y="48" width="16" height="14"/>
-  <path class="body-static" d="M62 64 Q100 54 138 64 L142 178 Q100 196 58 178 Z"/>
-  <path class="body-static" d="M70 178 Q100 194 130 178 L130 202 Q100 216 70 202 Z"/>
-  <ellipse class="body-static" cx="80" cy="360" rx="14" ry="7"/>
-  <ellipse class="body-static" cx="120" cy="360" rx="14" ry="7"/>
+  <circle class="body-static" cx="110" cy="30" r="21"/>
+  <rect class="body-static" x="101" y="47" width="18" height="16"/>
+  <path class="body-static" d="M62 66 Q110 52 158 66 L162 190 Q110 208 58 190 Z"/>
+  <path class="body-static" d="M76 190 Q110 206 144 190 L142 216 Q110 230 78 216 Z"/>
+  <path class="body-static" d="M80 138 Q90 160 86 186 Q76 180 74 160 Z" stroke-dasharray="2 2"/>
+  <path class="body-static" d="M140 138 Q130 160 134 186 Q144 180 146 160 Z" stroke-dasharray="2 2"/>
+  <ellipse class="body-static" cx="88" cy="392" rx="15" ry="7"/>
+  <ellipse class="body-static" cx="132" cy="392" rx="15" ry="7"/>
 `;
 
 const BODY_ZONES_BACK = [
-  ['traps', '<path class="body-zone" data-zone="traps" d="M76 54 Q100 46 124 54 L134 92 Q100 78 66 92 Z"/>'],
-  ['lats', '<path class="body-zone" data-zone="lats" d="M64 92 Q100 100 136 92 L130 158 Q100 172 70 158 Z"/>'],
-  ['triceps', '<path class="body-zone" data-zone="triceps" d="M36 96 Q52 94 56 104 L54 140 Q44 146 36 138 Z"/><path class="body-zone" data-zone="triceps" d="M164 96 Q148 94 144 104 L146 140 Q156 146 164 138 Z"/>'],
-  ['forearms', '<path class="body-zone" data-zone="forearms" d="M33 142 Q46 140 52 146 L48 182 Q40 186 32 180 Z"/><path class="body-zone" data-zone="forearms" d="M167 142 Q154 140 148 146 L152 182 Q160 186 168 180 Z"/>'],
-  ['glutes', '<path class="body-zone" data-zone="glutes" d="M68 174 Q100 166 132 174 L129 208 Q100 220 71 208 Z"/>'],
-  ['hamstrings', '<path class="body-zone" data-zone="hamstrings" d="M66 212 Q80 208 96 212 L94 278 Q80 286 68 278 Z"/><path class="body-zone" data-zone="hamstrings" d="M134 212 Q120 208 104 212 L106 278 Q120 286 132 278 Z"/>'],
-  ['calves', '<path class="body-zone" data-zone="calves" d="M70 292 Q82 288 94 292 L92 352 Q82 360 72 352 Z"/><path class="body-zone" data-zone="calves" d="M130 292 Q118 288 106 292 L108 352 Q118 360 128 352 Z"/>'],
+  ['traps', '<path class="body-zone" data-zone="traps" d="M110 58 L150 78 Q130 96 110 100 Q90 96 70 78 Z"/>'],
+  ['lats', '<path class="body-zone" data-zone="lats" d="M64 96 Q90 84 110 88 Q130 84 156 96 C 158 116, 150 148, 132 168 Q110 176, 88 168 C 70 148, 62 116, 64 96 Z"/>'],
+  ['delts',
+    '<path class="body-zone" data-zone="delts" d="M42 84 Q56 66 70 76 C 70 90, 68 104, 62 114 Q48 112, 40 98 Z"/>'+
+    '<path class="body-zone" data-zone="delts" d="M178 84 Q164 66 150 76 C 150 90, 152 104, 158 114 Q172 112, 180 98 Z"/>'],
+  ['triceps',
+    '<path class="body-zone" data-zone="triceps" d="M38 104 Q56 100 60 114 C 62 128, 58 146, 50 156 Q38 154, 34 140 C 32 128, 34 114, 38 104 Z"/>'+
+    '<path class="body-zone" data-zone="triceps" d="M182 104 Q164 100 160 114 C 158 128, 162 146, 170 156 Q182 154, 186 140 C 188 128, 186 114, 182 104 Z"/>'],
+  ['forearms',
+    '<path class="body-zone" data-zone="forearms" d="M35 158 Q48 156 53 164 L48 204 Q40 208 32 202 Z"/>'+
+    '<path class="body-zone" data-zone="forearms" d="M185 158 Q172 156 167 164 L172 204 Q180 208 188 202 Z"/>'],
+  ['glutes',
+    '<path class="body-zone" data-zone="glutes" d="M110 196 C 82 194, 66 206, 66 224 C 66 242, 84 252, 110 250 Z"/>'+
+    '<path class="body-zone" data-zone="glutes" d="M110 196 C 138 194, 154 206, 154 224 C 154 242, 136 252, 110 250 Z"/>'],
+  ['hamstrings',
+    '<path class="body-zone" data-zone="hamstrings" d="M70 254 C 60 258, 56 276, 58 298 C 60 316, 68 328, 80 330 C 92 326, 96 312, 96 292 C 96 274, 90 258, 80 254 C 76 252, 73 252, 70 254 Z"/>'+
+    '<path class="body-zone" data-zone="hamstrings" d="M150 254 C 160 258, 164 276, 162 298 C 160 316, 152 328, 140 330 C 128 326, 124 312, 124 292 C 124 274, 130 258, 140 254 C 144 252, 147 252, 150 254 Z"/>'],
+  ['calves',
+    '<path class="body-zone" data-zone="calves" d="M62 334 C 60 350, 66 366, 78 372 C 90 366, 94 348, 90 332 Q76 326, 62 334 Z"/>'+
+    '<path class="body-zone" data-zone="calves" d="M158 334 C 160 350, 154 366, 142 372 C 130 366, 126 348, 130 332 Q144 326, 158 334 Z"/>'],
 ];
 const BODY_STATIC_BACK = `
-  <circle class="body-static" cx="100" cy="30" r="20"/>
-  <rect class="body-static" x="92" y="48" width="16" height="14"/>
-  <path class="body-static" d="M62 64 Q100 54 138 64 L142 178 Q100 196 58 178 Z"/>
-  <ellipse class="body-static" cx="80" cy="360" rx="14" ry="7"/>
-  <ellipse class="body-static" cx="120" cy="360" rx="14" ry="7"/>
+  <circle class="body-static" cx="110" cy="30" r="21"/>
+  <rect class="body-static" x="101" y="47" width="18" height="16"/>
+  <path class="body-static" d="M62 66 Q110 52 158 66 L162 190 Q110 208 58 190 Z"/>
+  <path class="body-static" d="M78 168 Q110 178 142 168 L138 200 Q110 212 82 200 Z"/>
+  <ellipse class="body-static" cx="88" cy="392" rx="15" ry="7"/>
+  <ellipse class="body-static" cx="132" cy="392" rx="15" ry="7"/>
 `;
 
 let bodyMapView = 'front';
@@ -1685,7 +1719,7 @@ function renderBodyMap(){
     if(selectedZone === slug) cls = cls.split('class="body-zone').join('class="body-zone selected');
     zonesSvg += cls;
   });
-  const svg = `<svg viewBox="0 0 200 380" width="260" height="494" style="max-width:100%;">${staticShapes}${zonesSvg}</svg>`;
+  const svg = `<svg viewBox="0 0 220 440" width="240" height="480" style="max-width:100%;">${staticShapes}${zonesSvg}</svg>`;
   const wrap = document.getElementById('bodyMapSvgWrap');
   wrap.innerHTML = svg;
   wrap.querySelectorAll('.body-zone').forEach(el=>{
