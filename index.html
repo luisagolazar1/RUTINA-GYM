@@ -572,8 +572,8 @@ select{
   <div class="modal" style="max-height:85vh; overflow-y:auto;">
     <h3 id="exerciseFormTitle">Editar ejercicio</h3>
     <div class="row">
-      <label class="field-label">Día</label>
-      <select id="ef_dia"></select>
+      <label class="field-label">Día <span id="ef_diaHint" class="hint" style="margin:0;"></span></label>
+      <div id="ef_diaList"></div>
     </div>
     <div class="row">
       <label class="field-label">Grupo muscular</label>
@@ -1510,12 +1510,45 @@ function populateDaySelect(sel, {includeAll=false, extraDay=null}={}){
   });
 }
 
+let efSelectedDays = [];
+let efIsNewExercise = true;
+
+function renderEfDiaList(){
+  const wrap = document.getElementById('ef_diaList');
+  wrap.innerHTML = '';
+  const extraDay = efSelectedDays.find(d=>!ACTIVE_DAYS.includes(d));
+  const days = extraDay ? [...ACTIVE_DAYS, extraDay] : ACTIVE_DAYS;
+  ALL_DAYS.filter(d=>days.includes(d)).forEach(d=>{
+    const checked = efSelectedDays.includes(d);
+    const row = document.createElement('div');
+    row.className = 'day-check-row' + (checked ? ' checked' : '');
+    row.innerHTML = `<span class="label">${DAY_NAMES[d]}</span><span class="box">✓</span>`;
+    row.onclick = ()=>{
+      if(efIsNewExercise){
+        // Nuevo ejercicio: se puede tildar varios días a la vez
+        if(efSelectedDays.includes(d)){
+          if(efSelectedDays.length>1) efSelectedDays = efSelectedDays.filter(x=>x!==d);
+        } else {
+          efSelectedDays.push(d);
+        }
+      } else {
+        // Editar ejercicio existente: solo un día (como antes)
+        efSelectedDays = [d];
+      }
+      renderEfDiaList();
+    };
+    wrap.appendChild(row);
+  });
+}
+
 function openExerciseForm(id, presetDay){
   editingExerciseId = id;
   const ex = id ? ROUTINE.find(e=>e._id===id) : null;
+  efIsNewExercise = !ex;
   document.getElementById('exerciseFormTitle').textContent = ex ? 'Editar ejercicio' : 'Nuevo ejercicio';
-  populateDaySelect(document.getElementById('ef_dia'), {extraDay: ex ? ex.dia : presetDay});
-  document.getElementById('ef_dia').value = ex ? ex.dia : (presetDay || ACTIVE_DAYS[0]);
+  document.getElementById('ef_diaHint').textContent = efIsNewExercise ? '(podés elegir varios días)' : '';
+  efSelectedDays = ex ? [ex.dia] : [presetDay || ACTIVE_DAYS[0]];
+  renderEfDiaList();
   document.getElementById('ef_musculo').value = ex ? ex.musculo : '';
   document.getElementById('ef_ejercicio').value = ex ? ex.ejercicio : '';
 
@@ -1992,11 +2025,11 @@ async function searchExerciseImage(){
 }
 
 async function saveExerciseForm(){
-  const dia = document.getElementById('ef_dia').value;
   const musculo = document.getElementById('ef_musculo').value.trim() || 'General';
   const ejercicio = document.getElementById('ef_ejercicio').value.trim();
   if(!ejercicio){ alert('Poné el nombre del ejercicio.'); return; }
   if(editingSets.length === 0){ alert('Agregá al menos una serie.'); return; }
+  if(efSelectedDays.length === 0){ alert('Elegí al menos un día.'); return; }
 
   const sets = editingSets.map(s=>({reps: +s.reps||0, peso: +s.peso||0}));
   const series = sets.length;
@@ -2005,20 +2038,24 @@ async function saveExerciseForm(){
 
   if(editingExerciseId){
     const ex = ROUTINE.find(e=>e._id===editingExerciseId);
-    ex.dia = dia; ex.musculo = musculo; ex.grupo = ex.grupo || musculo;
+    ex.dia = efSelectedDays[0]; ex.musculo = musculo; ex.grupo = ex.grupo || musculo;
     ex.ejercicio = ejercicio; ex.series = series; ex.rep = rep; ex.peso = peso;
     ex.sets = sets;
     if(editingExerciseImg) ex.imagen = editingExerciseImg;
   } else {
-    ROUTINE.push({
-      _id: 'ex_' + Math.random().toString(36).slice(2,9),
-      dia, grupo: musculo, musculo, ejercicio, series, rep, peso, sets,
-      imagen: editingExerciseImg || undefined
+    // Ejercicio nuevo: crea una copia independiente por cada día tildado
+    efSelectedDays.forEach(dia=>{
+      ROUTINE.push({
+        _id: 'ex_' + Math.random().toString(36).slice(2,9),
+        dia, grupo: musculo, musculo, ejercicio, series, rep, peso, sets,
+        imagen: editingExerciseImg || undefined
+      });
     });
   }
   await persistRoutine(editTargetUser);
   closeExerciseForm();
   renderEditor();
+  if(document.getElementById('bodyMapScreen').classList.contains('active')) renderBodyMap();
 }
 
 async function deleteExercise(id){
