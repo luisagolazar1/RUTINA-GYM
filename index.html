@@ -337,6 +337,8 @@ input:focus{outline:none; border-color:var(--lime);}
 }
 .body-zone.selected{ stroke:#fff !important; stroke-width:2.8; }
 .body-static{ fill:var(--surface-2); stroke:var(--line); stroke-width:1.5; opacity:.6; }
+.fiber{ pointer-events:none; }
+.fiber path{ fill:none; stroke:rgba(0,0,0,.35); stroke-width:1; stroke-linecap:round; }
 .muscle-detail-card{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
   padding:16px; margin-top:6px;
@@ -1592,6 +1594,8 @@ function normalizeTxt(s){
 }
 // Reglas por orden de prioridad: primera coincidencia gana
 const ZONE_KEYWORD_RULES = [
+  ['obliques', ['oblicuo']],
+  ['abductors', ['abductor']],
   ['adductors', ['aductor']],
   ['glutes', ['gluteo','peso muerto sumo']],
   ['hamstrings', ['isquio','femoral','peso muerto']],
@@ -1621,6 +1625,9 @@ function getTrainedZones(){
   });
   return zones;
 }
+// Algunas zonas visuales no existen como músculo propio en la base de ejercicios (ej: oblicuos),
+// así que reusan el catálogo del músculo más cercano al buscar ejercicios.
+const ZONE_TO_API_SLUG = { obliques: 'abs' };
 
 const BODY_ZONES_FRONT = [
   ['pectorals',
@@ -1642,7 +1649,13 @@ const BODY_ZONES_FRONT = [
     '<rect class="body-zone" data-zone="abs" x="111" y="150" width="12" height="16" rx="3"/>'+
     '<rect class="body-zone" data-zone="abs" x="97" y="168" width="12" height="16" rx="3"/>'+
     '<rect class="body-zone" data-zone="abs" x="111" y="168" width="12" height="16" rx="3"/>'],
+  ['obliques',
+    '<path class="body-zone" data-zone="obliques" d="M80 136 Q92 160 87 188 Q76 182 73 158 Z"/>'+
+    '<path class="body-zone" data-zone="obliques" d="M140 136 Q128 160 133 188 Q144 182 147 158 Z"/>'],
   ['adductors', '<path class="body-zone" data-zone="adductors" d="M102 220 Q110 217 118 220 L114 272 Q110 276 106 272 Z"/>'],
+  ['abductors',
+    '<path class="body-zone" data-zone="abductors" d="M58 224 Q66 220 70 228 L68 276 Q60 280 54 272 Z"/>'+
+    '<path class="body-zone" data-zone="abductors" d="M162 224 Q154 220 150 228 L152 276 Q160 280 166 272 Z"/>'],
   ['quads',
     '<path class="body-zone" data-zone="quads" d="M70 222 C 60 226, 56 244, 58 268 C 60 292, 66 308, 78 312 C 90 308, 96 294, 98 272 C 100 250, 96 230, 88 222 C 82 218, 76 218, 70 222 Z"/>'+
     '<path class="body-zone" data-zone="quads" d="M150 222 C 160 226, 164 244, 162 268 C 160 292, 154 308, 142 312 C 130 308, 124 294, 122 272 C 120 250, 124 230, 132 222 C 138 218, 144 218, 150 222 Z"/>'],
@@ -1650,13 +1663,32 @@ const BODY_ZONES_FRONT = [
     '<path class="body-zone" data-zone="calves" d="M64 330 Q78 326 92 330 L88 388 Q78 396 68 388 Z"/>'+
     '<path class="body-zone" data-zone="calves" d="M156 330 Q142 326 128 330 L132 388 Q142 396 152 388 Z"/>'],
 ];
+const BODY_FIBERS_FRONT = `
+  <g class="fiber">
+    <path d="M108 84 Q92 87 78 79"/><path d="M108 96 Q90 99 76 96"/><path d="M107 109 Q92 113 79 114"/>
+    <path d="M112 84 Q128 87 142 79"/><path d="M112 96 Q130 99 144 96"/><path d="M113 109 Q128 113 141 114"/>
+  </g>
+  <g class="fiber">
+    <path d="M48 82 Q55 90 50 100"/><path d="M172 82 Q165 90 170 100"/>
+  </g>
+  <g class="fiber">
+    <path d="M45 110 L44 148"/><path d="M52 108 L50 150"/>
+    <path d="M175 110 L176 148"/><path d="M168 108 L170 150"/>
+  </g>
+  <g class="fiber">
+    <path d="M75 228 Q71 262 78 302"/><path d="M85 224 Q83 262 88 306"/><path d="M93 230 Q94 262 92 298"/>
+    <path d="M145 228 Q149 262 142 302"/><path d="M135 224 Q137 262 132 306"/><path d="M127 230 Q126 262 128 298"/>
+  </g>
+  <g class="fiber">
+    <path d="M74 336 L72 380"/><path d="M84 334 L82 384"/>
+    <path d="M146 336 L148 380"/><path d="M136 334 L138 384"/>
+  </g>
+`;
 const BODY_STATIC_FRONT = `
   <circle class="body-static" cx="110" cy="30" r="21"/>
   <rect class="body-static" x="101" y="47" width="18" height="16"/>
   <path class="body-static" d="M62 66 Q110 52 158 66 L162 190 Q110 208 58 190 Z"/>
   <path class="body-static" d="M76 190 Q110 206 144 190 L142 216 Q110 230 78 216 Z"/>
-  <path class="body-static" d="M80 138 Q90 160 86 186 Q76 180 74 160 Z" stroke-dasharray="2 2"/>
-  <path class="body-static" d="M140 138 Q130 160 134 186 Q144 180 146 160 Z" stroke-dasharray="2 2"/>
   <ellipse class="body-static" cx="88" cy="392" rx="15" ry="7"/>
   <ellipse class="body-static" cx="132" cy="392" rx="15" ry="7"/>
 `;
@@ -1673,6 +1705,9 @@ const BODY_ZONES_BACK = [
   ['forearms',
     '<path class="body-zone" data-zone="forearms" d="M35 158 Q48 156 53 164 L48 204 Q40 208 32 202 Z"/>'+
     '<path class="body-zone" data-zone="forearms" d="M185 158 Q172 156 167 164 L172 204 Q180 208 188 202 Z"/>'],
+  ['abductors',
+    '<path class="body-zone" data-zone="abductors" d="M58 210 Q66 206 70 214 L68 250 Q60 254 54 246 Z"/>'+
+    '<path class="body-zone" data-zone="abductors" d="M162 210 Q154 206 150 214 L152 250 Q160 254 166 246 Z"/>'],
   ['glutes',
     '<path class="body-zone" data-zone="glutes" d="M110 196 C 82 194, 66 206, 66 224 C 66 242, 84 252, 110 250 Z"/>'+
     '<path class="body-zone" data-zone="glutes" d="M110 196 C 138 194, 154 206, 154 224 C 154 242, 136 252, 110 250 Z"/>'],
@@ -1683,6 +1718,31 @@ const BODY_ZONES_BACK = [
     '<path class="body-zone" data-zone="calves" d="M62 334 C 60 350, 66 366, 78 372 C 90 366, 94 348, 90 332 Q76 326, 62 334 Z"/>'+
     '<path class="body-zone" data-zone="calves" d="M158 334 C 160 350, 154 366, 142 372 C 130 366, 126 348, 130 332 Q144 326, 158 334 Z"/>'],
 ];
+const BODY_FIBERS_BACK = `
+  <g class="fiber">
+    <path d="M110 66 Q98 78 82 84"/><path d="M110 66 Q122 78 138 84"/><path d="M110 72 L110 96"/>
+  </g>
+  <g class="fiber">
+    <path d="M70 100 Q92 112 108 106"/><path d="M150 100 Q128 112 112 106"/>
+    <path d="M74 128 Q94 138 108 132"/><path d="M146 128 Q126 138 112 132"/>
+    <path d="M84 154 Q98 160 108 156"/><path d="M136 154 Q122 160 112 156"/>
+  </g>
+  <g class="fiber">
+    <path d="M45 110 L44 148"/><path d="M52 108 L50 150"/>
+    <path d="M175 110 L176 148"/><path d="M168 108 L170 150"/>
+  </g>
+  <g class="fiber">
+    <path d="M78 204 Q94 212 108 206"/><path d="M142 204 Q126 212 112 206"/>
+  </g>
+  <g class="fiber">
+    <path d="M74 262 L72 322"/><path d="M84 258 L83 326"/>
+    <path d="M146 262 L148 322"/><path d="M136 258 L137 326"/>
+  </g>
+  <g class="fiber">
+    <path d="M74 336 L72 380"/><path d="M84 334 L82 384"/>
+    <path d="M146 336 L148 380"/><path d="M136 334 L138 384"/>
+  </g>
+`;
 const BODY_STATIC_BACK = `
   <circle class="body-static" cx="110" cy="30" r="21"/>
   <rect class="body-static" x="101" y="47" width="18" height="16"/>
@@ -1697,8 +1757,8 @@ let selectedZone = null;
 
 const ZONE_COLORS = {
   pectorals: '#C8FF3D', delts: '#FF9F40', biceps: '#4DD9FF', triceps: '#FF4DA6',
-  forearms: '#B388FF', abs: '#FFE14D', adductors: '#FF6F91', quads: '#4D7CFF',
-  hamstrings: '#35D0BA', calves: '#FF7A45', traps: '#FF3D3D', lats: '#FFB020', glutes: '#A96BFF'
+  forearms: '#B388FF', abs: '#FFE14D', obliques: '#F5C000', adductors: '#FF6F91', abductors: '#5DE8A0',
+  quads: '#4D7CFF', hamstrings: '#35D0BA', calves: '#FF7A45', traps: '#FF3D3D', lats: '#FFB020', glutes: '#A96BFF'
 };
 
 function showBodyMap(){
@@ -1721,6 +1781,7 @@ function renderBodyMap(){
   const trained = getTrainedZones();
   const zones = bodyMapView === 'front' ? BODY_ZONES_FRONT : BODY_ZONES_BACK;
   const staticShapes = bodyMapView === 'front' ? BODY_STATIC_FRONT : BODY_STATIC_BACK;
+  const fibers = bodyMapView === 'front' ? BODY_FIBERS_FRONT : BODY_FIBERS_BACK;
   let zonesSvg = '';
   zones.forEach(([slug, markup])=>{
     let cls = markup;
@@ -1735,7 +1796,7 @@ function renderBodyMap(){
     <feGaussianBlur stdDeviation="3.2" result="blur"/>
     <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
   </filter></defs>`;
-  const svg = `<svg viewBox="0 0 220 440" width="240" height="480" style="max-width:100%;">${glowDefs}${staticShapes}${zonesSvg}</svg>`;
+  const svg = `<svg viewBox="0 0 220 440" width="240" height="480" style="max-width:100%;">${glowDefs}${staticShapes}${zonesSvg}${fibers}</svg>`;
   const wrap = document.getElementById('bodyMapSvgWrap');
   wrap.innerHTML = svg;
   wrap.querySelectorAll('.body-zone').forEach(el=>{
@@ -1759,7 +1820,8 @@ async function renderMuscleDetail(slug){
     </div>
   `;
   try{
-    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(slug));
+    const apiSlug = ZONE_TO_API_SLUG[slug] || slug;
+    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(apiSlug));
     const data = await r.json();
     const results = (data.results || []).slice(0, 10);
     const list = document.getElementById('muscleExList');
@@ -1792,7 +1854,7 @@ function addExerciseFromBodyMap(it, muscleLabel){
 const MUSCLE_LABEL_ES = {
   pectorals: 'Pecho', lats: 'Espalda', 'upper-back': 'Espalda alta', traps: 'Trapecio', spine: 'Espalda baja',
   delts: 'Hombro', quads: 'Cuádriceps', hamstrings: 'Isquiotibiales',
-  glutes: 'Glúteos', adductors: 'Aductores', abductors: 'Abductores',
+  glutes: 'Glúteos', adductors: 'Aductores', abductors: 'Abductores', obliques: 'Oblicuos',
   calves: 'Pantorrillas', abs: 'Abdomen', forearms: 'Antebrazo', biceps: 'Bíceps', triceps: 'Tríceps',
   'serratus-anterior': 'Serrato', 'levator-scapulae': 'Cuello/Escápula', cardio: 'Cardio'
 };
