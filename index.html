@@ -327,15 +327,15 @@ input:focus{outline:none; border-color:var(--lime);}
 
 /* Mapa corporal */
 .body-zone{
-  fill:var(--surface-2); stroke:var(--line); stroke-width:1.5; cursor:pointer;
-  transition:fill .15s, stroke .15s;
+  fill:var(--surface-2); fill-opacity:1; stroke:currentColor; stroke-opacity:.55; stroke-width:1.6; cursor:pointer;
+  transition:fill .15s, stroke .15s, filter .15s;
 }
-.body-zone:active{ stroke:var(--lime); }
+.body-zone:active{ stroke-opacity:1; }
 .body-zone.trained{
-  fill:currentColor; fill-opacity:.5; stroke:currentColor; stroke-width:1.8;
+  fill:currentColor; fill-opacity:.55; stroke:currentColor; stroke-opacity:1; stroke-width:2;
   filter:url(#muscleGlow);
 }
-.body-zone.selected{ stroke:#fff !important; stroke-width:2.8; }
+.body-zone.selected{ stroke:#fff !important; stroke-opacity:1 !important; stroke-width:2.8; }
 .body-static{ fill:var(--surface-2); stroke:var(--line); stroke-width:1.5; opacity:.6; }
 .fiber{ pointer-events:none; }
 .fiber path{ fill:none; stroke:rgba(0,0,0,.35); stroke-width:1; stroke-linecap:round; }
@@ -1785,10 +1785,9 @@ function renderBodyMap(){
   let zonesSvg = '';
   zones.forEach(([slug, markup])=>{
     let cls = markup;
-    if(trained.has(slug)){
-      cls = cls.split('class="body-zone"').join('class="body-zone trained"');
-      cls = cls.split(`data-zone="${slug}"`).join(`data-zone="${slug}" style="color:${ZONE_COLORS[slug]||'#C8FF3D'}"`);
-    }
+    // El contorno de color se inyecta SIEMPRE (entrenado o no) para que el músculo nunca quede invisible
+    cls = cls.split(`data-zone="${slug}"`).join(`data-zone="${slug}" style="color:${ZONE_COLORS[slug]||'#C8FF3D'}"`);
+    if(trained.has(slug)) cls = cls.split('class="body-zone"').join('class="body-zone trained"');
     if(selectedZone === slug) cls = cls.split('class="body-zone').join('class="body-zone selected');
     zonesSvg += cls;
   });
