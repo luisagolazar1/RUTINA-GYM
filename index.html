@@ -2383,14 +2383,16 @@ async function showRestNotification(){
   if(!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
   try{
     const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('Descanso: ' + fmtTime(restRemaining), {
+    await reg.showNotification('⏱ ' + fmtTime(restRemaining) + (restPaused ? ' · Pausado' : ''), {
       tag: 'rest-timer',
-      body: restPaused ? 'Pausado' : 'Tocá para volver a la app',
+      body: 'Rutina Gym',
       icon: '/icon-192.png',
+      badge: '/icon-192.png',
       silent: true,
       requireInteraction: false,
       actions: [
         { action: restPaused ? 'resume' : 'pause', title: restPaused ? '▶ Reanudar' : '⏸ Pausar' },
+        { action: 'restart', title: '↺ Reiniciar' },
         { action: 'stop', title: '⏹ Detener' }
       ]
     });
@@ -2404,6 +2406,7 @@ if('serviceWorker' in navigator){
     if(action === 'pause') pauseRestTimer();
     else if(action === 'resume') resumeRestTimer();
     else if(action === 'stop') stopRestTimer();
+    else if(action === 'restart') restartRestTimer();
   });
 }
 
