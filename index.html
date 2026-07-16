@@ -114,12 +114,16 @@ input:focus{outline:none; border-color:var(--lime);}
 /* Day selector */
 .days{display:flex; gap:6px; overflow-x:auto; padding-bottom:4px; margin-bottom:18px;}
 .day-chip{
-  flex:0 0 auto; padding:10px 16px; border-radius:999px; border:1px solid var(--line);
+  flex:0 0 auto; padding:10px 16px; border-radius:999px; border:1.5px solid currentColor;
   background:var(--surface); color:var(--muted); font-weight:700; font-size:13px; cursor:pointer;
   display:flex; flex-direction:column; align-items:center; min-width:56px;
+  opacity:.62; transition:opacity .15s, box-shadow .15s, border-width .15s;
 }
-.day-chip small{font-size:9px; font-weight:600; letter-spacing:1px; opacity:.8;}
-.day-chip.active{background:var(--lime); color:#0B0D10; border-color:var(--lime);}
+.day-chip small{font-size:9px; font-weight:600; letter-spacing:1px; opacity:.9;}
+.day-chip.active{
+  opacity:1; border-width:2.5px;
+  box-shadow:0 0 8px 1px currentColor, 0 0 20px 5px currentColor;
+}
 
 .day-title{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px;}
 .day-title .display{font-size:30px;}
@@ -873,6 +877,7 @@ function renderDayChips(){
   ACTIVE_DAYS.forEach(d=>{
     const chip = document.createElement('div');
     chip.className = 'day-chip' + (d===currentDay?' active':'');
+    chip.style.color = DAY_COLORS[d] || '#C8FF3D';
     chip.innerHTML = `<span>${d}</span><small>${DAY_NAMES[d].slice(0,3)}</small>`;
     chip.onclick = ()=> selectDay(d);
     wrap.appendChild(chip);
@@ -1455,6 +1460,7 @@ function renderEditor(){
     sec.className = 'editor-day-section';
     const title = document.createElement('div');
     title.className = 'editor-day-title';
+    title.style.color = DAY_COLORS[day] || 'var(--lime)';
     title.textContent = DAY_NAMES[day] + (ACTIVE_DAYS.includes(day) ? '' : ' (día no activo)');
     sec.appendChild(title);
     items.forEach((ex, i)=>{
@@ -1867,6 +1873,10 @@ const ZONE_COLORS = {
   pectorals: '#C8FF3D', delts: '#FF9F40', biceps: '#4DD9FF', triceps: '#FF4DA6',
   forearms: '#B388FF', abs: '#FFE14D', obliques: '#F5C000', adductors: '#FF6F91', abductors: '#5DE8A0',
   quads: '#4D7CFF', hamstrings: '#35D0BA', calves: '#FF7A45', traps: '#FF3D3D', lats: '#FFB020', glutes: '#A96BFF'
+};
+const DAY_COLORS = {
+  LUN: '#C8FF3D', MAR: '#4DD9FF', MIE: '#FF9F40', JUE: '#FF4DA6',
+  VIE: '#B388FF', SAB: '#FFE14D', DOM: '#35D0BA'
 };
 
 function showBodyMap(){
