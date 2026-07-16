@@ -1574,8 +1574,14 @@ function closeExerciseForm(){
 function renderCurrentImg(){
   const wrap = document.getElementById('ef_currentImgWrap');
   wrap.innerHTML = editingExerciseImg
-    ? `<img src="${editingExerciseImg}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line);">`
+    ? `<img src="${editingExerciseImg}" style="width:80px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line);cursor:pointer;" title="Tocar para ver en grande">`
     : '<div class="hint">Todavía sin foto.</div>';
+  if(editingExerciseImg){
+    wrap.querySelector('img').onclick = ()=>{
+      const nombre = document.getElementById('ef_ejercicio').value || 'Ejercicio';
+      openLightbox(editingExerciseImg, nombre);
+    };
+  }
 }
 
 function renderEfSetsList(){
