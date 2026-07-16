@@ -426,16 +426,43 @@ select{
 <!-- ============ APP ============ -->
 <div id="appWrap" style="display:none;">
   <!-- ============ CRONÓMETRO DE DESCANSO (flotante) ============ -->
+  <audio id="silentAudio" loop playsinline style="display:none;" src="data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA"></audio>
   <div id="restTimerBtn" class="rest-timer-btn">⏱</div>
   <div class="modal-bg" id="restTimerModalBg">
     <div class="modal">
       <h3>Descanso entre series</h3>
-      <div id="restTimerPresets" style="display:flex; gap:8px; margin-bottom:14px;">
-        <button class="btn btn-ghost" data-secs="60" style="flex:1;">60s</button>
-        <button class="btn btn-ghost" data-secs="90" style="flex:1;">90s</button>
-        <button class="btn btn-ghost" data-secs="120" style="flex:1;">120s</button>
-        <button class="btn btn-ghost" data-secs="180" style="flex:1;">180s</button>
+
+      <div id="restTimerPickPanel">
+        <div id="restTimerPresets" style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="btn btn-ghost" data-secs="15" style="flex:1;">15s</button>
+          <button class="btn btn-ghost" data-secs="30" style="flex:1;">30s</button>
+          <button class="btn btn-ghost" data-secs="45" style="flex:1;">45s</button>
+          <button class="btn btn-ghost" data-secs="60" style="flex:1;">60s</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:14px;">
+          <button class="btn btn-ghost" data-secs="90" style="flex:1;">90s</button>
+          <button class="btn btn-ghost" data-secs="120" style="flex:1;">120s</button>
+          <button class="btn btn-ghost" data-secs="180" style="flex:1;">180s</button>
+        </div>
+        <div class="row">
+          <label class="field-label">Personalizado (segundos)</label>
+          <div style="display:flex; gap:8px;">
+            <input type="number" inputmode="numeric" id="restTimerCustomSecs" placeholder="Ej: 40" style="flex:1;">
+            <button class="btn btn-lime" id="restTimerCustomBtn" style="flex:0 0 auto;">Iniciar</button>
+          </div>
+        </div>
       </div>
+
+      <div id="restTimerRunPanel" style="display:none; text-align:center;">
+        <div id="restTimerBigLabel" style="font-family:'JetBrains Mono',monospace; font-size:48px; font-weight:800; color:var(--lime); margin:10px 0;">1:30</div>
+        <div style="display:flex; gap:8px; margin-bottom:10px;">
+          <button class="btn btn-ghost" id="restTimerPauseBtn" style="flex:1;">⏸ Pausar</button>
+          <button class="btn btn-ghost" id="restTimerRestartBtn" style="flex:1;">↺ Reiniciar</button>
+        </div>
+        <button class="btn btn-ghost btn-block" id="restTimerStopBtn" style="color:var(--red); border-color:var(--red); margin-bottom:14px;">Detener</button>
+        <p class="hint">Se puede bloquear el celular: seguí el conteo desde la pantalla de bloqueo o la notificación.</p>
+      </div>
+
       <div class="actions">
         <button class="btn btn-ghost" id="restTimerCloseBtn">Cerrar</button>
       </div>
@@ -2272,6 +2299,9 @@ const DAY_COLORS = {
    ============================================================ */
 let restInterval = null;
 let restRemaining = 0;
+let restTotal = 0;
+let restPaused = false;
+let restNotifTimer = null;
 
 function playBeep(){
   try{
@@ -2291,53 +2321,182 @@ function playBeep(){
   if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
 }
 
+function fmtTime(secs){
+  const m = Math.floor(secs/60);
+  const s = secs%60;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
 function openRestTimerModal(){
-  if(restInterval){ // ya está corriendo: tocar el botón lo cancela
-    stopRestTimer();
-    return;
+  const pick = document.getElementById('restTimerPickPanel');
+  const run = document.getElementById('restTimerRunPanel');
+  if(restInterval || restPaused){
+    pick.style.display = 'none';
+    run.style.display = 'block';
+    updateRestRunPanel();
+  } else {
+    pick.style.display = 'block';
+    run.style.display = 'none';
   }
   document.getElementById('restTimerModalBg').classList.add('show');
 }
 function closeRestTimerModal(){
   document.getElementById('restTimerModalBg').classList.remove('show');
 }
+
+function activateMediaSession(){
+  const audio = document.getElementById('silentAudio');
+  audio.play().catch(()=>{});
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'Descanso: ' + fmtTime(restRemaining),
+      artist: 'Rutina Gym',
+      album: 'Cronómetro de descanso'
+    });
+    navigator.mediaSession.playbackState = 'playing';
+    navigator.mediaSession.setActionHandler('pause', ()=> pauseRestTimer());
+    navigator.mediaSession.setActionHandler('play', ()=> resumeRestTimer());
+    navigator.mediaSession.setActionHandler('stop', ()=> stopRestTimer());
+    navigator.mediaSession.setActionHandler('nexttrack', ()=> restartRestTimer());
+  }
+}
+function updateMediaSessionTitle(){
+  if('mediaSession' in navigator && navigator.mediaSession.metadata){
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: (restPaused ? '⏸ Pausado: ' : 'Descanso: ') + fmtTime(restRemaining),
+      artist: 'Rutina Gym',
+      album: 'Cronómetro de descanso'
+    });
+    navigator.mediaSession.playbackState = restPaused ? 'paused' : 'playing';
+  }
+}
+function deactivateMediaSession(){
+  const audio = document.getElementById('silentAudio');
+  audio.pause();
+  if('mediaSession' in navigator){
+    navigator.mediaSession.metadata = null;
+    navigator.mediaSession.playbackState = 'none';
+  }
+}
+
+async function showRestNotification(){
+  if(!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    await reg.showNotification('Descanso: ' + fmtTime(restRemaining), {
+      tag: 'rest-timer',
+      body: restPaused ? 'Pausado' : 'Tocá para volver a la app',
+      icon: '/icon-192.png',
+      silent: true,
+      requireInteraction: false,
+      actions: [
+        { action: restPaused ? 'resume' : 'pause', title: restPaused ? '▶ Reanudar' : '⏸ Pausar' },
+        { action: 'stop', title: '⏹ Detener' }
+      ]
+    });
+  }catch(e){}
+}
+
+// Escuchar comandos que llegan desde los botones de la notificación (vía service worker)
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message', (event)=>{
+    const action = event.data && event.data.restTimerAction;
+    if(action === 'pause') pauseRestTimer();
+    else if(action === 'resume') resumeRestTimer();
+    else if(action === 'stop') stopRestTimer();
+  });
+}
+
 function startRestTimer(seconds){
+  if(seconds <= 0) return;
   closeRestTimerModal();
   clearInterval(restInterval);
+  restTotal = seconds;
   restRemaining = seconds;
+  restPaused = false;
   const btn = document.getElementById('restTimerBtn');
   btn.classList.remove('done');
   btn.classList.add('running');
   updateRestTimerLabel();
+  activateMediaSession();
+  if(Notification && Notification.permission === 'default'){
+    Notification.requestPermission().then(()=> showRestNotification());
+  } else {
+    showRestNotification();
+  }
   restInterval = setInterval(()=>{
     restRemaining--;
     if(restRemaining <= 0){
-      clearInterval(restInterval);
-      restInterval = null;
-      btn.classList.remove('running');
-      btn.classList.add('done');
-      btn.textContent = '✓';
-      playBeep();
-      setTimeout(()=>{
-        btn.classList.remove('done');
-        btn.textContent = '⏱';
-      }, 3000);
+      finishRestTimer();
       return;
     }
     updateRestTimerLabel();
+    updateMediaSessionTitle();
+    if(restRemaining % 5 === 0) showRestNotification();
   }, 1000);
 }
+function finishRestTimer(){
+  clearInterval(restInterval);
+  restInterval = null;
+  restPaused = false;
+  const btn = document.getElementById('restTimerBtn');
+  btn.classList.remove('running');
+  btn.classList.add('done');
+  btn.textContent = '✓';
+  playBeep();
+  deactivateMediaSession();
+  if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(reg=> reg.getNotifications({tag:'rest-timer'}).then(ns=>ns.forEach(n=>n.close())));
+  setTimeout(()=>{
+    btn.classList.remove('done');
+    btn.textContent = '⏱';
+  }, 3000);
+}
+function pauseRestTimer(){
+  if(!restInterval) return;
+  clearInterval(restInterval);
+  restInterval = null;
+  restPaused = true;
+  updateMediaSessionTitle();
+  updateRestRunPanel();
+  showRestNotification();
+}
+function resumeRestTimer(){
+  if(restInterval || restRemaining<=0) return;
+  restPaused = false;
+  updateMediaSessionTitle();
+  updateRestRunPanel();
+  showRestNotification();
+  restInterval = setInterval(()=>{
+    restRemaining--;
+    if(restRemaining <= 0){ finishRestTimer(); return; }
+    updateRestTimerLabel();
+    updateMediaSessionTitle();
+    if(restRemaining % 5 === 0) showRestNotification();
+  }, 1000);
+}
+function restartRestTimer(){
+  const secs = restTotal || 90;
+  startRestTimer(secs);
+  openRestTimerModal();
+}
 function updateRestTimerLabel(){
-  const m = Math.floor(restRemaining/60);
-  const s = restRemaining%60;
-  document.getElementById('restTimerBtn').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('restTimerBtn').textContent = fmtTime(Math.max(restRemaining,0));
+}
+function updateRestRunPanel(){
+  document.getElementById('restTimerBigLabel').textContent = fmtTime(Math.max(restRemaining,0));
+  document.getElementById('restTimerPauseBtn').textContent = restPaused ? '▶ Reanudar' : '⏸ Pausar';
 }
 function stopRestTimer(){
   clearInterval(restInterval);
   restInterval = null;
+  restPaused = false;
+  restRemaining = 0;
   const btn = document.getElementById('restTimerBtn');
   btn.classList.remove('running','done');
   btn.textContent = '⏱';
+  deactivateMediaSession();
+  if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(reg=> reg.getNotifications({tag:'rest-timer'}).then(ns=>ns.forEach(n=>n.close())));
+  closeRestTimerModal();
 }
 
 function showBodyMap(){
@@ -2593,9 +2752,21 @@ document.getElementById('navHistBtn').onclick = showHistory;
 document.getElementById('restTimerBtn').onclick = openRestTimerModal;
 document.getElementById('prCloseBtn').onclick = ()=> document.getElementById('prModalBg').classList.remove('show');
 document.getElementById('restTimerCloseBtn').onclick = closeRestTimerModal;
-document.querySelectorAll('#restTimerPresets button').forEach(btn=>{
+document.querySelectorAll('#restTimerPickPanel button[data-secs]').forEach(btn=>{
   btn.onclick = ()=> startRestTimer(+btn.dataset.secs);
 });
+document.getElementById('restTimerCustomBtn').onclick = ()=>{
+  const secs = +document.getElementById('restTimerCustomSecs').value;
+  if(secs > 0) startRestTimer(secs);
+};
+document.getElementById('restTimerCustomSecs').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('restTimerCustomBtn').click(); }
+});
+document.getElementById('restTimerPauseBtn').onclick = ()=>{
+  if(restPaused) resumeRestTimer(); else pauseRestTimer();
+};
+document.getElementById('restTimerRestartBtn').onclick = restartRestTimer;
+document.getElementById('restTimerStopBtn').onclick = stopRestTimer;
 document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
 document.getElementById('openProgressBtn').onclick = showProgress;
 document.getElementById('openBodyWeightBtn').onclick = showBodyWeight;

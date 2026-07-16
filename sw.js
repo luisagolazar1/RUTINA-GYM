@@ -28,6 +28,28 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Botones de acción de la notificación del cronómetro de descanso (pausar/reanudar/detener)
+self.addEventListener('notificationclick', (event) => {
+  const notif = event.notification;
+  const action = event.action; // '' si tocaron el cuerpo, o 'pause'/'resume'/'stop'
+  event.waitUntil((async () => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    if (action) {
+      clientsList.forEach(c => c.postMessage({ restTimerAction: action }));
+      if (action !== 'stop') return; // pausar/reanudar no necesita cerrar la notificación
+      notif.close();
+      return;
+    }
+    // Tocaron el cuerpo de la notificación: enfocar o abrir la app
+    notif.close();
+    if (clientsList.length > 0) {
+      clientsList[0].focus();
+    } else {
+      self.clients.openWindow('/');
+    }
+  })());
+});
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return; // no interceptar POST (guardado de datos)
