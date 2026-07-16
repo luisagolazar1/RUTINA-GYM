@@ -61,7 +61,11 @@ body{
 
 /* ---------- Screens ---------- */
 .screen{display:none; padding:18px; max-width:640px; margin:0 auto;}
-.screen.active{display:block;}
+.screen.active{display:block; animation:screenFade .28s ease both;}
+@keyframes screenFade{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:translateY(0); }
+}
 
 /* Login */
 #loginScreen{
@@ -91,9 +95,9 @@ body{
 .userrow{
   display:flex; align-items:center; gap:12px;
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-  padding:14px 16px; cursor:pointer; transition:border-color .15s;
+  padding:14px 16px; cursor:pointer; transition:border-color .15s, transform .12s ease;
 }
-.userrow:active{border-color:var(--lime);}
+.userrow:active{border-color:var(--lime); transform:scale(.97);}
 .userrow .avatar{width:38px; height:38px; font-size:15px;}
 .userrow .name{font-weight:700; font-size:16px;}
 .userrow .meta{color:var(--muted); font-size:12px; margin-top:2px;}
@@ -105,8 +109,9 @@ input[type=text], input[type=number]{
 input:focus{outline:none; border-color:var(--lime);}
 .btn{
   border:none; border-radius:10px; padding:13px 18px; font-weight:700; font-size:14px;
-  cursor:pointer; font-family:'Inter',sans-serif;
+  cursor:pointer; font-family:'Inter',sans-serif; transition:transform .12s ease, box-shadow .12s ease;
 }
+.btn:active{transform:scale(.95);}
 .btn-lime{background:var(--lime); color:#0B0D10;}
 .btn-ghost{background:transparent; color:var(--text); border:1px solid var(--line);}
 .btn-block{width:100%;}
@@ -117,8 +122,9 @@ input:focus{outline:none; border-color:var(--lime);}
   flex:0 0 auto; padding:10px 16px; border-radius:999px; border:1.5px solid currentColor;
   background:var(--surface); color:var(--muted); font-weight:700; font-size:13px; cursor:pointer;
   display:flex; flex-direction:column; align-items:center; min-width:56px;
-  opacity:.62; transition:opacity .15s, box-shadow .15s, border-width .15s;
+  opacity:.62; transition:opacity .15s, box-shadow .15s, border-width .15s, transform .12s ease;
 }
+.day-chip:active{transform:scale(.92);}
 .day-chip small{font-size:9px; font-weight:600; letter-spacing:1px; opacity:.9;}
 .day-chip.active{
   opacity:1; border-width:2.5px;
@@ -157,8 +163,14 @@ input:focus{outline:none; border-color:var(--lime);}
 .check{
   flex:0 0 auto; width:30px; height:30px; border-radius:8px; border:1.5px solid var(--line);
   display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; color:transparent;
+  transition:transform .15s ease;
 }
-.check.on{background:var(--lime); border-color:var(--lime); color:#0B0D10;}
+.check.on{background:var(--lime); border-color:var(--lime); color:#0B0D10; animation:checkPop .35s cubic-bezier(.34,1.56,.64,1);}
+@keyframes checkPop{
+  0%{ transform:scale(.6) rotate(-10deg); }
+  55%{ transform:scale(1.25) rotate(6deg); }
+  100%{ transform:scale(1) rotate(0); }
+}
 .sets-list{margin-top:12px; display:flex; flex-direction:column; gap:6px;}
 .set-row{
   display:flex; align-items:center; gap:6px;
@@ -232,7 +244,13 @@ input:focus{outline:none; border-color:var(--lime);}
   position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:50; display:none;
   align-items:flex-end; justify-content:center;
 }
-.modal-bg.show{display:flex;}
+.modal-bg.show{display:flex; animation:modalBgFade .2s ease both;}
+@keyframes modalBgFade{ from{opacity:0;} to{opacity:1;} }
+.modal-bg.show .modal{ animation:modalPop .3s cubic-bezier(.34,1.56,.64,1) both; }
+@keyframes modalPop{
+  from{ opacity:0; transform:translateY(40px); }
+  to{ opacity:1; transform:translateY(0); }
+}
 .modal{
   background:var(--surface); border:1px solid var(--line); border-radius:18px 18px 0 0;
   padding:22px 18px calc(22px + env(safe-area-inset-bottom)); width:100%; max-width:640px;
@@ -262,37 +280,27 @@ input:focus{outline:none; border-color:var(--lime);}
 .icon-btn{
   width:38px; height:38px; border-radius:10px; border:1px solid var(--line);
   background:var(--surface-2); color:var(--text); font-size:16px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
+  display:flex; align-items:center; justify-content:center; transition:transform .12s ease;
 }
+.icon-btn:active{transform:scale(.9);}
+
+@keyframes fadeInUp{
+  from{ opacity:0; transform:translateY(16px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.fade-in-up{ animation:fadeInUp .4s ease both; }
+
+@keyframes trophyBounce{
+  0%{ transform:scale(0) rotate(-20deg); opacity:0; }
+  55%{ transform:scale(1.3) rotate(10deg); opacity:1; }
+  75%{ transform:scale(.92) rotate(-6deg); }
+  100%{ transform:scale(1) rotate(0); }
+}
+#prModalBg .modal > div:first-child{ animation:trophyBounce .55s cubic-bezier(.34,1.56,.64,1) both; display:inline-block; }
+.pr-row{ animation:fadeInUp .4s ease both; }
+
 
 /* Cronómetro de descanso flotante */
-.rest-timer-btn{
-  position:fixed; right:16px; bottom:86px; z-index:35;
-  width:60px; height:60px; border-radius:50%;
-  background:var(--surface); border:2px solid var(--lime);
-  color:var(--lime); font-size:15px; font-weight:800; font-family:'JetBrains Mono',monospace;
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-  box-shadow:0 4px 16px rgba(0,0,0,.5);
-}
-.rest-timer-btn.running{
-  background:var(--lime); color:#0B0D10; font-size:14px;
-  box-shadow:0 0 10px 2px rgba(200,255,61,.7), 0 4px 16px rgba(0,0,0,.5);
-  animation:restPulse 1s ease-in-out infinite;
-}
-.rest-timer-btn.done{
-  background:var(--red); border-color:var(--red); color:#fff;
-  animation:restPulse .5s ease-in-out infinite;
-}
-@keyframes restPulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
-.rest-timer-config-btn{
-  position:fixed; right:20px; bottom:150px; z-index:35;
-  width:30px; height:30px; border-radius:50%;
-  background:var(--surface-2); border:1px solid var(--line);
-  color:var(--muted); font-size:13px;
-  display:flex; align-items:center; justify-content:center; cursor:pointer;
-  box-shadow:0 2px 8px rgba(0,0,0,.4);
-}
-
 .pr-row{
   background:var(--surface-2); border:1px solid var(--lime-dim); border-radius:12px;
   padding:12px 14px; margin-bottom:8px; text-align:left;
@@ -330,9 +338,9 @@ input:focus{outline:none; border-color:var(--lime);}
 .browse-user-card{
   display:flex; align-items:center; gap:14px;
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-  padding:16px; margin-bottom:10px; cursor:pointer;
+  padding:16px; margin-bottom:10px; cursor:pointer; transition:border-color .15s, transform .12s ease;
 }
-.browse-user-card:active{border-color:var(--lime);}
+.browse-user-card:active{border-color:var(--lime); transform:scale(.97);}
 .browse-user-card .avatar{width:46px; height:46px; font-size:16px; flex:0 0 auto;}
 .browse-user-card .name{font-weight:700; font-size:16px;}
 .browse-user-card .meta{color:var(--muted); font-size:12px; margin-top:2px;}
@@ -433,51 +441,7 @@ select{
 
 <!-- ============ APP ============ -->
 <div id="appWrap" style="display:none;">
-  <!-- ============ CRONÓMETRO DE DESCANSO (flotante) ============ -->
-  <audio id="silentAudio" loop playsinline style="display:none;" src="data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA"></audio>
-  <div id="restTimerBtn" class="rest-timer-btn">⏱</div>
-  <div id="restTimerConfigBtn" class="rest-timer-config-btn" title="Cambiar duración de descanso">⚙</div>
-  <div class="modal-bg" id="restTimerModalBg">
-    <div class="modal">
-      <h3>Descanso entre series</h3>
-
-      <div id="restTimerPickPanel">
-        <p class="hint" style="margin-top:-6px;">Lo que elijas acá queda como predeterminado: la próxima vez el botón ⏱ arranca directo con esta duración, sin preguntar.</p>
-        <div id="restTimerPresets" style="display:flex; gap:8px; margin-bottom:10px;">
-          <button class="btn btn-ghost" data-secs="15" style="flex:1;">15s</button>
-          <button class="btn btn-ghost" data-secs="30" style="flex:1;">30s</button>
-          <button class="btn btn-ghost" data-secs="45" style="flex:1;">45s</button>
-          <button class="btn btn-ghost" data-secs="60" style="flex:1;">60s</button>
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:14px;">
-          <button class="btn btn-ghost" data-secs="90" style="flex:1;">90s</button>
-          <button class="btn btn-ghost" data-secs="120" style="flex:1;">120s</button>
-          <button class="btn btn-ghost" data-secs="180" style="flex:1;">180s</button>
-        </div>
-        <div class="row">
-          <label class="field-label">Personalizado (segundos)</label>
-          <div style="display:flex; gap:8px;">
-            <input type="number" inputmode="numeric" id="restTimerCustomSecs" placeholder="Ej: 40" style="flex:1;">
-            <button class="btn btn-lime" id="restTimerCustomBtn" style="flex:0 0 auto;">Iniciar</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="restTimerRunPanel" style="display:none; text-align:center;">
-        <div id="restTimerBigLabel" style="font-family:'JetBrains Mono',monospace; font-size:48px; font-weight:800; color:var(--lime); margin:10px 0;">1:30</div>
-        <div style="display:flex; gap:8px; margin-bottom:10px;">
-          <button class="btn btn-ghost" id="restTimerPauseBtn" style="flex:1;">⏸ Pausar</button>
-          <button class="btn btn-ghost" id="restTimerRestartBtn" style="flex:1;">↺ Reiniciar</button>
-        </div>
-        <button class="btn btn-ghost btn-block" id="restTimerStopBtn" style="color:var(--red); border-color:var(--red); margin-bottom:14px;">Detener</button>
-        <p class="hint">Se puede bloquear el celular: seguí el conteo desde la pantalla de bloqueo o la notificación.</p>
-      </div>
-
-      <div class="actions">
-        <button class="btn btn-ghost" id="restTimerCloseBtn">Cerrar</button>
-      </div>
-    </div>
-  </div>
+  
 
   <div class="topbar">
     <div class="brand">
@@ -1053,6 +1017,7 @@ function groupBy(items, key){
 function renderExercises(items){
   const list = document.getElementById('exerciseList');
   list.innerHTML = '';
+  let cardIndex = 0;
   const groups = groupBy(items, 'musculo');
   Object.keys(groups).forEach(musc=>{
     const gdiv = document.createElement('div');
@@ -1066,7 +1031,8 @@ function renderExercises(items){
         : Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
       sessionState[key] = {done:false, sets};
       const card = document.createElement('div');
-      card.className = 'exercise';
+      card.className = 'exercise fade-in-up';
+      card.style.animationDelay = (cardIndex++ * 45) + 'ms';
       card.id = 'card_'+key;
       const imgUrl = exerciseImageUrl(ex);
       const imgHtml = imgUrl
@@ -1234,10 +1200,11 @@ function showHistory(){
     wrap.innerHTML = '<div class="empty">Todavía no registraste ninguna sesión.<br>Completá ejercicios y tocá "Guardar sesión".</div>';
     return;
   }
-  log.forEach(e=>{
+  log.forEach((e,i)=>{
     const d = new Date(e.fecha);
     const item = document.createElement('div');
-    item.className = 'hist-item';
+    item.className = 'hist-item fade-in-up';
+    item.style.animationDelay = (Math.min(i,12) * 35) + 'ms';
     const statLine = Array.isArray(e.sets) && e.sets.length
       ? e.sets.map(s=>`${s.reps}×${s.peso}kg`).join('  ·  ')
       : `${e.series}×${e.rep} · ${e.peso} kg`;
@@ -1782,7 +1749,7 @@ async function showBrowseRoutines(){
     const routine = await fetchUserRoutine(u.email);
     const days = new Set(routine.map(e=>e.dia)).size;
     const card = document.createElement('div');
-    card.className = 'browse-user-card';
+    card.className = 'browse-user-card fade-in-up';
     card.innerHTML = `
       <div class="avatar">${u.picture ? `<img src="${u.picture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials(u.name)}</div>
       <div>
@@ -1874,7 +1841,8 @@ function renderEditor(){
     items.forEach((ex, i)=>{
       const img = exerciseImageUrl(ex);
       const row = document.createElement('div');
-      row.className = 'editor-row';
+      row.className = 'editor-row fade-in-up';
+      row.style.animationDelay = (i * 40) + 'ms';
       row.innerHTML = `
         ${img ? `<img class="editor-thumb" src="${img}">` : '<div class="editor-thumb placeholder"></div>'}
         <div class="editor-info">
@@ -2304,235 +2272,6 @@ const DAY_COLORS = {
   VIE: '#B388FF', SAB: '#FFE14D', DOM: '#35D0BA'
 };
 
-/* ============================================================
-   CRONÓMETRO DE DESCANSO ENTRE SERIES
-   ============================================================ */
-let restInterval = null;
-let restRemaining = 0;
-let restTotal = 0;
-let restPaused = false;
-let restNotifTimer = null;
-
-function playBeep(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.18, 0.36].forEach(delay=>{
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = 880;
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.15);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(ctx.currentTime + delay);
-      osc.stop(ctx.currentTime + delay + 0.16);
-    });
-  }catch(e){}
-  if(navigator.vibrate) navigator.vibrate([200,100,200,100,200]);
-}
-
-function fmtTime(secs){
-  const m = Math.floor(secs/60);
-  const s = secs%60;
-  return `${m}:${s.toString().padStart(2,'0')}`;
-}
-
-function getDefaultRestSeconds(){
-  const saved = localStorage.getItem('rutina_restdefault_' + currentUser);
-  return saved ? +saved : 90;
-}
-function setDefaultRestSeconds(secs){
-  localStorage.setItem('rutina_restdefault_' + currentUser, secs);
-}
-
-function onRestTimerBtnClick(){
-  if(restInterval || restPaused){
-    openRestTimerModal(); // ya hay uno corriendo/pausado: mostrar pausar/reiniciar/detener
-  } else {
-    startRestTimer(getDefaultRestSeconds()); // arranca directo, sin preguntar
-  }
-}
-function openRestTimerPicker(){
-  document.getElementById('restTimerPickPanel').style.display = 'block';
-  document.getElementById('restTimerRunPanel').style.display = 'none';
-  document.getElementById('restTimerModalBg').classList.add('show');
-}
-function openRestTimerModal(){
-  const pick = document.getElementById('restTimerPickPanel');
-  const run = document.getElementById('restTimerRunPanel');
-  if(restInterval || restPaused){
-    pick.style.display = 'none';
-    run.style.display = 'block';
-    updateRestRunPanel();
-  } else {
-    pick.style.display = 'block';
-    run.style.display = 'none';
-  }
-  document.getElementById('restTimerModalBg').classList.add('show');
-}
-function closeRestTimerModal(){
-  document.getElementById('restTimerModalBg').classList.remove('show');
-}
-
-function activateMediaSession(){
-  const audio = document.getElementById('silentAudio');
-  audio.play().catch(()=>{});
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: 'Descanso: ' + fmtTime(restRemaining),
-      artist: 'Rutina Gym',
-      album: 'Cronómetro de descanso'
-    });
-    navigator.mediaSession.playbackState = 'playing';
-    navigator.mediaSession.setActionHandler('pause', ()=> pauseRestTimer());
-    navigator.mediaSession.setActionHandler('play', ()=> resumeRestTimer());
-    navigator.mediaSession.setActionHandler('stop', ()=> stopRestTimer());
-    navigator.mediaSession.setActionHandler('nexttrack', ()=> restartRestTimer());
-  }
-}
-function updateMediaSessionTitle(){
-  if('mediaSession' in navigator && navigator.mediaSession.metadata){
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: (restPaused ? '⏸ Pausado: ' : 'Descanso: ') + fmtTime(restRemaining),
-      artist: 'Rutina Gym',
-      album: 'Cronómetro de descanso'
-    });
-    navigator.mediaSession.playbackState = restPaused ? 'paused' : 'playing';
-  }
-}
-function deactivateMediaSession(){
-  const audio = document.getElementById('silentAudio');
-  audio.pause();
-  if('mediaSession' in navigator){
-    navigator.mediaSession.metadata = null;
-    navigator.mediaSession.playbackState = 'none';
-  }
-}
-
-async function showRestNotification(){
-  if(!('serviceWorker' in navigator) || Notification.permission !== 'granted') return;
-  try{
-    const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('⏱ ' + fmtTime(restRemaining) + (restPaused ? ' · Pausado' : ''), {
-      tag: 'rest-timer',
-      body: 'Rutina Gym',
-      icon: '/icon-192.png',
-      badge: '/icon-192.png',
-      silent: true,
-      requireInteraction: false,
-      actions: [
-        { action: restPaused ? 'resume' : 'pause', title: restPaused ? '▶ Reanudar' : '⏸ Pausar' },
-        { action: 'restart', title: '↺ Reiniciar' },
-        { action: 'stop', title: '⏹ Detener' }
-      ]
-    });
-  }catch(e){}
-}
-
-// Escuchar comandos que llegan desde los botones de la notificación (vía service worker)
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.addEventListener('message', (event)=>{
-    const action = event.data && event.data.restTimerAction;
-    if(action === 'pause') pauseRestTimer();
-    else if(action === 'resume') resumeRestTimer();
-    else if(action === 'stop') stopRestTimer();
-    else if(action === 'restart') restartRestTimer();
-  });
-}
-
-function startRestTimer(seconds){
-  if(seconds <= 0) return;
-  setDefaultRestSeconds(seconds);
-  closeRestTimerModal();
-  clearInterval(restInterval);
-  restTotal = seconds;
-  restRemaining = seconds;
-  restPaused = false;
-  const btn = document.getElementById('restTimerBtn');
-  btn.classList.remove('done');
-  btn.classList.add('running');
-  updateRestTimerLabel();
-  activateMediaSession();
-  if(Notification && Notification.permission === 'default'){
-    Notification.requestPermission().then(()=> showRestNotification());
-  } else {
-    showRestNotification();
-  }
-  restInterval = setInterval(()=>{
-    restRemaining--;
-    if(restRemaining <= 0){
-      finishRestTimer();
-      return;
-    }
-    updateRestTimerLabel();
-    updateMediaSessionTitle();
-    showRestNotification();
-  }, 1000);
-}
-function finishRestTimer(){
-  clearInterval(restInterval);
-  restInterval = null;
-  restPaused = false;
-  const btn = document.getElementById('restTimerBtn');
-  btn.classList.remove('running');
-  btn.classList.add('done');
-  btn.textContent = '✓';
-  playBeep();
-  deactivateMediaSession();
-  if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(reg=> reg.getNotifications({tag:'rest-timer'}).then(ns=>ns.forEach(n=>n.close())));
-  setTimeout(()=>{
-    btn.classList.remove('done');
-    btn.textContent = '⏱';
-  }, 3000);
-}
-function pauseRestTimer(){
-  if(!restInterval) return;
-  clearInterval(restInterval);
-  restInterval = null;
-  restPaused = true;
-  updateMediaSessionTitle();
-  updateRestRunPanel();
-  showRestNotification();
-}
-function resumeRestTimer(){
-  if(restInterval || restRemaining<=0) return;
-  restPaused = false;
-  updateMediaSessionTitle();
-  updateRestRunPanel();
-  showRestNotification();
-  restInterval = setInterval(()=>{
-    restRemaining--;
-    if(restRemaining <= 0){ finishRestTimer(); return; }
-    updateRestTimerLabel();
-    updateMediaSessionTitle();
-    showRestNotification();
-  }, 1000);
-}
-function restartRestTimer(){
-  const secs = restTotal || 90;
-  startRestTimer(secs);
-  openRestTimerModal();
-}
-function updateRestTimerLabel(){
-  document.getElementById('restTimerBtn').textContent = fmtTime(Math.max(restRemaining,0));
-}
-function updateRestRunPanel(){
-  document.getElementById('restTimerBigLabel').textContent = fmtTime(Math.max(restRemaining,0));
-  document.getElementById('restTimerPauseBtn').textContent = restPaused ? '▶ Reanudar' : '⏸ Pausar';
-}
-function stopRestTimer(){
-  clearInterval(restInterval);
-  restInterval = null;
-  restPaused = false;
-  restRemaining = 0;
-  const btn = document.getElementById('restTimerBtn');
-  btn.classList.remove('running','done');
-  btn.textContent = '⏱';
-  deactivateMediaSession();
-  if('serviceWorker' in navigator) navigator.serviceWorker.ready.then(reg=> reg.getNotifications({tag:'rest-timer'}).then(ns=>ns.forEach(n=>n.close())));
-  closeRestTimerModal();
-}
-
 function showBodyMap(){
   document.getElementById('entrenoScreen').classList.remove('active');
   document.getElementById('bodyMapScreen').classList.add('active');
@@ -2783,25 +2522,7 @@ document.getElementById('signOutBtn').onclick = ()=>{
 };
 document.getElementById('saveSessionBtn').onclick = saveSession;
 document.getElementById('navHistBtn').onclick = showHistory;
-document.getElementById('restTimerBtn').onclick = onRestTimerBtnClick;
-document.getElementById('restTimerConfigBtn').onclick = openRestTimerPicker;
 document.getElementById('prCloseBtn').onclick = ()=> document.getElementById('prModalBg').classList.remove('show');
-document.getElementById('restTimerCloseBtn').onclick = closeRestTimerModal;
-document.querySelectorAll('#restTimerPickPanel button[data-secs]').forEach(btn=>{
-  btn.onclick = ()=> startRestTimer(+btn.dataset.secs);
-});
-document.getElementById('restTimerCustomBtn').onclick = ()=>{
-  const secs = +document.getElementById('restTimerCustomSecs').value;
-  if(secs > 0) startRestTimer(secs);
-};
-document.getElementById('restTimerCustomSecs').addEventListener('keydown', e=>{
-  if(e.key==='Enter'){ e.preventDefault(); document.getElementById('restTimerCustomBtn').click(); }
-});
-document.getElementById('restTimerPauseBtn').onclick = ()=>{
-  if(restPaused) resumeRestTimer(); else pauseRestTimer();
-};
-document.getElementById('restTimerRestartBtn').onclick = restartRestTimer;
-document.getElementById('restTimerStopBtn').onclick = stopRestTimer;
 document.getElementById('backToEntrenoBtn').onclick = backToEntreno;
 document.getElementById('openProgressBtn').onclick = showProgress;
 document.getElementById('openBodyWeightBtn').onclick = showBodyWeight;

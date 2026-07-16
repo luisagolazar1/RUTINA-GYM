@@ -28,20 +28,12 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Botones de acción de la notificación del cronómetro de descanso (pausar/reanudar/detener)
+// Al tocar cualquier notificación: enfocar la app abierta o abrir una nueva.
 self.addEventListener('notificationclick', (event) => {
   const notif = event.notification;
-  const action = event.action; // '' si tocaron el cuerpo, o 'pause'/'resume'/'stop'
   event.waitUntil((async () => {
-    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-    if (action) {
-      clientsList.forEach(c => c.postMessage({ restTimerAction: action }));
-      if (action !== 'stop') return; // pausar/reanudar no necesita cerrar la notificación
-      notif.close();
-      return;
-    }
-    // Tocaron el cuerpo de la notificación: enfocar o abrir la app
     notif.close();
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     if (clientsList.length > 0) {
       clientsList[0].focus();
     } else {
