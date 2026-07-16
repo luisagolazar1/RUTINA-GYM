@@ -284,6 +284,14 @@ input:focus{outline:none; border-color:var(--lime);}
   animation:restPulse .5s ease-in-out infinite;
 }
 @keyframes restPulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+.rest-timer-config-btn{
+  position:fixed; right:20px; bottom:150px; z-index:35;
+  width:30px; height:30px; border-radius:50%;
+  background:var(--surface-2); border:1px solid var(--line);
+  color:var(--muted); font-size:13px;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
 
 .pr-row{
   background:var(--surface-2); border:1px solid var(--lime-dim); border-radius:12px;
@@ -428,11 +436,13 @@ select{
   <!-- ============ CRONÓMETRO DE DESCANSO (flotante) ============ -->
   <audio id="silentAudio" loop playsinline style="display:none;" src="data:audio/wav;base64,UklGRmQGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUAGAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA"></audio>
   <div id="restTimerBtn" class="rest-timer-btn">⏱</div>
+  <div id="restTimerConfigBtn" class="rest-timer-config-btn" title="Cambiar duración de descanso">⚙</div>
   <div class="modal-bg" id="restTimerModalBg">
     <div class="modal">
       <h3>Descanso entre series</h3>
 
       <div id="restTimerPickPanel">
+        <p class="hint" style="margin-top:-6px;">Lo que elijas acá queda como predeterminado: la próxima vez el botón ⏱ arranca directo con esta duración, sin preguntar.</p>
         <div id="restTimerPresets" style="display:flex; gap:8px; margin-bottom:10px;">
           <button class="btn btn-ghost" data-secs="15" style="flex:1;">15s</button>
           <button class="btn btn-ghost" data-secs="30" style="flex:1;">30s</button>
@@ -2327,6 +2337,26 @@ function fmtTime(secs){
   return `${m}:${s.toString().padStart(2,'0')}`;
 }
 
+function getDefaultRestSeconds(){
+  const saved = localStorage.getItem('rutina_restdefault_' + currentUser);
+  return saved ? +saved : 90;
+}
+function setDefaultRestSeconds(secs){
+  localStorage.setItem('rutina_restdefault_' + currentUser, secs);
+}
+
+function onRestTimerBtnClick(){
+  if(restInterval || restPaused){
+    openRestTimerModal(); // ya hay uno corriendo/pausado: mostrar pausar/reiniciar/detener
+  } else {
+    startRestTimer(getDefaultRestSeconds()); // arranca directo, sin preguntar
+  }
+}
+function openRestTimerPicker(){
+  document.getElementById('restTimerPickPanel').style.display = 'block';
+  document.getElementById('restTimerRunPanel').style.display = 'none';
+  document.getElementById('restTimerModalBg').classList.add('show');
+}
 function openRestTimerModal(){
   const pick = document.getElementById('restTimerPickPanel');
   const run = document.getElementById('restTimerRunPanel');
@@ -2412,6 +2442,7 @@ if('serviceWorker' in navigator){
 
 function startRestTimer(seconds){
   if(seconds <= 0) return;
+  setDefaultRestSeconds(seconds);
   closeRestTimerModal();
   clearInterval(restInterval);
   restTotal = seconds;
@@ -2435,7 +2466,7 @@ function startRestTimer(seconds){
     }
     updateRestTimerLabel();
     updateMediaSessionTitle();
-    if(restRemaining % 5 === 0) showRestNotification();
+    showRestNotification();
   }, 1000);
 }
 function finishRestTimer(){
@@ -2474,7 +2505,7 @@ function resumeRestTimer(){
     if(restRemaining <= 0){ finishRestTimer(); return; }
     updateRestTimerLabel();
     updateMediaSessionTitle();
-    if(restRemaining % 5 === 0) showRestNotification();
+    showRestNotification();
   }, 1000);
 }
 function restartRestTimer(){
@@ -2752,7 +2783,8 @@ document.getElementById('signOutBtn').onclick = ()=>{
 };
 document.getElementById('saveSessionBtn').onclick = saveSession;
 document.getElementById('navHistBtn').onclick = showHistory;
-document.getElementById('restTimerBtn').onclick = openRestTimerModal;
+document.getElementById('restTimerBtn').onclick = onRestTimerBtnClick;
+document.getElementById('restTimerConfigBtn').onclick = openRestTimerPicker;
 document.getElementById('prCloseBtn').onclick = ()=> document.getElementById('prModalBg').classList.remove('show');
 document.getElementById('restTimerCloseBtn').onclick = closeRestTimerModal;
 document.querySelectorAll('#restTimerPickPanel button[data-secs]').forEach(btn=>{
