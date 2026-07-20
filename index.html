@@ -2585,7 +2585,24 @@ document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
   await cloudPing();
   initGoogleSignIn();
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    navigator.serviceWorker.register('/sw.js').then(reg=>{
+      // Si ya había un service worker activo y aparece uno nuevo instalado,
+      // significa que se actualizó la app: recargar solo una vez, automático.
+      reg.addEventListener('updatefound', ()=>{
+        const newWorker = reg.installing;
+        if(!newWorker) return;
+        newWorker.addEventListener('statechange', ()=>{
+          if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+            if(!sessionStorage.getItem('rutina_sw_reloaded')){
+              sessionStorage.setItem('rutina_sw_reloaded', '1');
+              window.location.reload();
+            }
+          }
+        });
+      });
+      // Revisar si hay una versión nueva cada vez que se abre la app
+      reg.update().catch(()=>{});
+    }).catch(()=>{});
   }
   function updateOfflineBanner(){
     document.getElementById('offlineBanner').style.display = navigator.onLine ? 'none' : 'block';

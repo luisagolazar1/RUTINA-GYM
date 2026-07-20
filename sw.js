@@ -1,10 +1,8 @@
 // Service Worker de Rutina Gym — permite que la app cargue sin conexión
 // y funcione con los datos guardados localmente hasta que vuelva la señal.
 
-const CACHE_NAME = 'rutina-gym-v1';
+const CACHE_NAME = 'rutina-gym-v2'; // subir este número en cada cambio importante fuerza a refrescar el caché viejo
 const CORE_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
@@ -62,7 +60,24 @@ self.addEventListener('fetch', (event) => {
   // Recursos externos (fuentes, CDN de imágenes de ejercicios): dejar pasar normal.
   if (url.origin !== self.location.origin) return;
 
-  // App shell y assets propios: cache primero, actualiza en segundo plano.
+  const isAppShell = url.pathname === '/' || url.pathname.endsWith('index.html') || request.mode === 'navigate';
+
+  if (isAppShell) {
+    // El HTML/JS de la app: SIEMPRE intenta traer la última versión primero.
+    // Solo usa la copia guardada si no hay conexión en absoluto.
+    event.respondWith(
+      fetch(request).then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Assets estáticos (íconos, manifest, fondo): cache primero, actualiza en segundo plano.
   event.respondWith(
     caches.match(request).then((cached) => {
       const networkFetch = fetch(request).then((response) => {
