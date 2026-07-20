@@ -931,7 +931,7 @@ async function fetchUserRoutine(user){
 let currentDay = DAY_ORDER[new Date().getDay()===0?0:Math.min(new Date().getDay()-1,4)];
 let sessionState = {}; // { exerciseKey: {done, sets:[{reps,peso}]} }
 
-function exKey(ex, idx){ return `${ex.dia}_${idx}`; }
+function exKey(ex, idx){ return ex._id || `${ex.dia}_${idx}`; }
 function initials(name){ return (name||'?').trim().slice(0,2).toUpperCase(); }
 
 async function loadActiveDays(user){
@@ -1139,39 +1139,55 @@ function updateProgress(){
    GUARDAR SESIÓN
    ============================================================ */
 async function saveSession(){
-  const log = loadLog(currentUser);
+  try{
+    const log = loadLog(currentUser);
 
-  // Calcular mejores marcas ANTES de agregar la sesión nueva, para detectar récords
-  const previousBest = {};
-  log.forEach(e=>{
-    const maxPeso = Array.isArray(e.sets) && e.sets.length ? Math.max(...e.sets.map(s=>s.peso||0)) : (e.peso||0);
-    if(!(e.ejercicio in previousBest) || maxPeso > previousBest[e.ejercicio]) previousBest[e.ejercicio] = maxPeso;
-  });
-
-  const now = new Date();
-  const newRecords = [];
-  Object.keys(sessionState).forEach(key=>{
-    const s = sessionState[key];
-    const [dia, idx] = key.split('_');
-    const ex = ROUTINE[+idx];
-    const maxPesoSesion = s.sets.length ? Math.max(...s.sets.map(x=>x.peso||0)) : 0;
-    log.push({
-      fecha: now.toISOString(),
-      dia: ex.dia, grupo: ex.grupo, musculo: ex.musculo, ejercicio: ex.ejercicio,
-      series: s.sets.length,
-      sets: s.sets.map(x=>({reps:x.reps, peso:x.peso})),
-      rep: s.sets[0]?.reps || 0, peso: s.sets[0]?.peso || 0,
-      estado: s.done ? 'OK' : 'PENDIENTE'
+    // Calcular mejores marcas ANTES de agregar la sesión nueva, para detectar récords
+    const previousBest = {};
+    log.forEach(e=>{
+      const maxPeso = Array.isArray(e.sets) && e.sets.length ? Math.max(...e.sets.map(s=>s.peso||0)) : (e.peso||0);
+      if(!(e.ejercicio in previousBest) || maxPeso > previousBest[e.ejercicio]) previousBest[e.ejercicio] = maxPeso;
     });
-    const prev = previousBest[ex.ejercicio];
-    if(prev !== undefined && maxPesoSesion > prev){
-      newRecords.push({ ejercicio: ex.ejercicio, anterior: prev, nuevo: maxPesoSesion });
+
+    const now = new Date();
+    const newRecords = [];
+    let guardados = 0;
+    Object.keys(sessionState).forEach(key=>{
+      const s = sessionState[key];
+      const ex = ROUTINE.find(e=>e._id===key);
+      if(!ex || !s || !Array.isArray(s.sets) || s.sets.length === 0){
+        console.warn('Rutina Gym: se salteó una entrada inválida al guardar', key, ex, s);
+        return; // no crashea el resto del guardado por una entrada rota
+      }
+      const maxPesoSesion = Math.max(...s.sets.map(x=>x.peso||0));
+      log.push({
+        fecha: now.toISOString(),
+        dia: ex.dia, grupo: ex.grupo, musculo: ex.musculo, ejercicio: ex.ejercicio,
+        series: s.sets.length,
+        sets: s.sets.map(x=>({reps:x.reps||0, peso:x.peso||0})),
+        rep: s.sets[0]?.reps || 0, peso: s.sets[0]?.peso || 0,
+        estado: s.done ? 'OK' : 'PENDIENTE'
+      });
+      guardados++;
+      const prev = previousBest[ex.ejercicio];
+      if(prev !== undefined && maxPesoSesion > prev){
+        newRecords.push({ ejercicio: ex.ejercicio, anterior: prev, nuevo: maxPesoSesion });
+      }
+    });
+
+    if(guardados === 0){
+      alert('No se pudo guardar ningún ejercicio de esta sesión. Probá recargar la app y reintentar. Si vuelve a pasar, avisale a Luis.');
+      return;
     }
-  });
-  saveLog(currentUser, log);
-  await cloudPush(currentUser, log);
-  showSync('Sesión guardada ✓');
-  if(newRecords.length > 0) showPRCelebration(newRecords);
+
+    saveLog(currentUser, log);
+    await cloudPush(currentUser, log);
+    showSync(`Sesión guardada ✓ (${guardados} ejercicio${guardados>1?'s':''})`);
+    if(newRecords.length > 0) showPRCelebration(newRecords);
+  }catch(err){
+    console.error('Rutina Gym: error guardando sesión', err);
+    alert('Ocurrió un error guardando la sesión: ' + (err?.message || err) + '\n\nProbá recargar la app. Si persiste, avisale a Luis.');
+  }
 }
 
 function showPRCelebration(records){
