@@ -427,6 +427,7 @@ select{
 
 <div class="syncbadge" id="syncBadge">Sincronizando…</div>
 <div id="offlineBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:40; background:var(--red); color:#fff; text-align:center; padding:6px; font-size:12px; font-weight:700;">📴 Sin conexión — usando datos guardados en el celular</div>
+<div id="updateBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:41; background:var(--lime); color:#0B0D10; text-align:center; padding:9px 12px; font-size:12px; font-weight:700; cursor:pointer;">✨ Hay una versión nueva — tocá para actualizar (no perdés lo que ya guardaste)</div>
 
 <!-- ============ LOGIN ============ -->
 <div class="screen active" id="loginScreen">
@@ -2581,26 +2582,28 @@ document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
   sel.addEventListener('change', ()=> browseMuscleGroup(sel.value));
 })();
 
+function showUpdateBanner(){
+  const banner = document.getElementById('updateBanner');
+  banner.style.display = 'block';
+  banner.onclick = ()=> window.location.reload();
+}
+
 (async function init(){
   await cloudPing();
   initGoogleSignIn();
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').then(reg=>{
-      // Si ya había un service worker activo y aparece uno nuevo instalado,
-      // significa que se actualizó la app: recargar solo una vez, automático.
+      // Si aparece una versión nueva, avisar con un botón — nunca recargar solo,
+      // para no perder series que el usuario esté cargando en ese momento.
       reg.addEventListener('updatefound', ()=>{
         const newWorker = reg.installing;
         if(!newWorker) return;
         newWorker.addEventListener('statechange', ()=>{
           if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
-            if(!sessionStorage.getItem('rutina_sw_reloaded')){
-              sessionStorage.setItem('rutina_sw_reloaded', '1');
-              window.location.reload();
-            }
+            showUpdateBanner();
           }
         });
       });
-      // Revisar si hay una versión nueva cada vez que se abre la app
       reg.update().catch(()=>{});
     }).catch(()=>{});
   }
