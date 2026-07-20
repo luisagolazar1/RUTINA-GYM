@@ -478,6 +478,7 @@ select{
       </div>
       <div class="progress-ring-wrap"><span id="dayProgress">0/0 completados</span></div>
     </div>
+    <p class="hint" style="margin-top:-8px; margin-bottom:14px;">💡 Lo que edites o agregues acá queda como el nuevo objetivo para la próxima vez que entrenes este día.</p>
     <div id="exerciseList"></div>
   </div>
 
@@ -1153,6 +1154,7 @@ async function saveSession(){
     const now = new Date();
     const newRecords = [];
     let guardados = 0;
+    let rutinaCambio = false;
     Object.keys(sessionState).forEach(key=>{
       const s = sessionState[key];
       const ex = ROUTINE.find(e=>e._id===key);
@@ -1160,19 +1162,30 @@ async function saveSession(){
         console.warn('Rutina Gym: se salteó una entrada inválida al guardar', key, ex, s);
         return; // no crashea el resto del guardado por una entrada rota
       }
-      const maxPesoSesion = Math.max(...s.sets.map(x=>x.peso||0));
+      const sesionSets = s.sets.map(x=>({reps:+x.reps||0, peso:+x.peso||0}));
+      const maxPesoSesion = Math.max(...sesionSets.map(x=>x.peso));
       log.push({
         fecha: now.toISOString(),
         dia: ex.dia, grupo: ex.grupo, musculo: ex.musculo, ejercicio: ex.ejercicio,
-        series: s.sets.length,
-        sets: s.sets.map(x=>({reps:x.reps||0, peso:x.peso||0})),
-        rep: s.sets[0]?.reps || 0, peso: s.sets[0]?.peso || 0,
+        series: sesionSets.length,
+        sets: sesionSets,
+        rep: sesionSets[0]?.reps || 0, peso: sesionSets[0]?.peso || 0,
         estado: s.done ? 'OK' : 'PENDIENTE'
       });
       guardados++;
       const prev = previousBest[ex.ejercicio];
       if(prev !== undefined && maxPesoSesion > prev){
         newRecords.push({ ejercicio: ex.ejercicio, anterior: prev, nuevo: maxPesoSesion });
+      }
+
+      // La sesión de hoy pasa a ser el nuevo objetivo planificado para la próxima vez
+      const planCambio = JSON.stringify(ex.sets||[]) !== JSON.stringify(sesionSets);
+      if(planCambio){
+        ex.sets = sesionSets;
+        ex.series = sesionSets.length;
+        ex.rep = sesionSets[0]?.reps || 0;
+        ex.peso = sesionSets[0]?.peso || 0;
+        rutinaCambio = true;
       }
     });
 
@@ -1183,7 +1196,8 @@ async function saveSession(){
 
     saveLog(currentUser, log);
     await cloudPush(currentUser, log);
-    showSync(`Sesión guardada ✓ (${guardados} ejercicio${guardados>1?'s':''})`);
+    if(rutinaCambio) await persistRoutine(currentUser);
+    showSync(`Sesión guardada ✓ (${guardados} ejercicio${guardados>1?'s':''}${rutinaCambio ? ' · rutina actualizada' : ''})`);
     if(newRecords.length > 0) showPRCelebration(newRecords);
   }catch(err){
     console.error('Rutina Gym: error guardando sesión', err);
