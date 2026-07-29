@@ -154,6 +154,13 @@ input:focus{outline:none; border-color:var(--lime);}
   border:1px solid var(--line); cursor:pointer; background:var(--surface-2);
 }
 .ex-name{font-weight:700; font-size:15px; line-height:1.25;}
+.ex-move{display:flex; flex-direction:column; gap:3px; flex:0 0 auto;}
+.ex-move-btn{
+  width:24px; height:20px; border-radius:5px; border:1px solid var(--line);
+  background:var(--surface-2); color:var(--muted); font-size:9px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; transition:transform .12s ease;
+}
+.ex-move-btn:active{transform:scale(.88); color:var(--lime); border-color:var(--lime);}
 .ex-target{color:var(--muted); font-size:12px; margin-top:3px;}
 .superserie-badge{
   background:rgba(255,159,64,.12); border:1px dashed #FF9F40; color:#FF9F40;
@@ -1028,10 +1035,14 @@ function renderExercises(items){
     groups[musc].forEach(ex=>{
       const idx = ROUTINE.indexOf(ex);
       const key = exKey(ex, idx);
-      const sets = (Array.isArray(ex.sets) && ex.sets.length)
-        ? ex.sets.map(s=>({reps:s.reps, peso:s.peso}))
-        : Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
-      sessionState[key] = {done:false, sets};
+      // Si ya había estado cargado para este ejercicio (ej: al reordenar), no lo pisa
+      if(!sessionState[key]){
+        const sets = (Array.isArray(ex.sets) && ex.sets.length)
+          ? ex.sets.map(s=>({reps:s.reps, peso:s.peso}))
+          : Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
+        sessionState[key] = {done:false, sets};
+      }
+      const sets = sessionState[key].sets;
       const card = document.createElement('div');
       card.className = 'exercise fade-in-up';
       card.style.animationDelay = (cardIndex++ * 45) + 'ms';
@@ -1056,6 +1067,10 @@ function renderExercises(items){
             <div class="ex-name">${ex.ejercicio}</div>
             <div class="ex-target">${targetText}</div>
           </div>
+          <div class="ex-move">
+            <button class="ex-move-btn" data-act="up" title="Mover antes">▲</button>
+            <button class="ex-move-btn" data-act="down" title="Mover después">▼</button>
+          </div>
           <div class="check" id="chk_${key}">✓</div>
         </div>
         ${superserieBadge}
@@ -1068,8 +1083,22 @@ function renderExercises(items){
       buildTally(key, sets.length);
       document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
       document.getElementById('addset_'+key).onclick = ()=> addSet(key);
+      card.querySelector('[data-act="up"]').onclick = ()=> moveExerciseInSession(key, -1);
+      card.querySelector('[data-act="down"]').onclick = ()=> moveExerciseInSession(key, 1);
     });
   });
+}
+
+function moveExerciseInSession(key, dir){
+  const idx = ROUTINE.findIndex(e=>e._id===key);
+  if(idx === -1) return;
+  const day = ROUTINE[idx].dia;
+  let j = idx + dir;
+  while(j>=0 && j<ROUTINE.length && ROUTINE[j].dia !== day) j += dir;
+  if(j<0 || j>=ROUTINE.length) return; // ya está en el extremo de ese día
+  [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
+  persistRoutine(currentUser);
+  renderExercises(ROUTINE.filter(e=>e.dia===currentDay)); // re-renderiza sin perder lo ya cargado
 }
 
 function renderSetsList(key){
