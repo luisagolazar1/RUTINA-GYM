@@ -1841,6 +1841,32 @@ function showRoutineSummary(user, routine){
 
   const list = document.getElementById('summaryList');
   list.innerHTML = '';
+
+  // Resumen: qué zonas trabaja más (según cantidad de ejercicios por músculo)
+  const zoneCounts = {};
+  routine.forEach(ex=>{
+    const z = classifyMuscleZone(ex);
+    if(z) zoneCounts[z] = (zoneCounts[z]||0) + 1;
+  });
+  const topZones = Object.entries(zoneCounts).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  if(topZones.length){
+    const focusCard = document.createElement('div');
+    focusCard.className = 'summary-day-card';
+    focusCard.style.borderColor = 'var(--lime-dim)';
+    focusCard.innerHTML = `
+      <div class="summary-day-title" style="color:var(--lime);">💪 Enfoque principal</div>
+      <div class="summary-day-sub" style="margin-bottom:10px;">Según cantidad de ejercicios en toda la semana</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${topZones.map(([zone,count])=>{
+          const color = ZONE_COLORS[zone] || '#C8FF3D';
+          const label = MUSCLE_LABEL_ES[zone] || zone;
+          return `<span style="background:${color}22; border:1px solid ${color}; color:${color}; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700;">${label} · ${count}</span>`;
+        }).join('')}
+      </div>
+    `;
+    list.appendChild(focusCard);
+  }
+
   DAY_ORDER.forEach(day=>{
     const items = routine.filter(e=>e.dia===day);
     if(items.length === 0) return;
