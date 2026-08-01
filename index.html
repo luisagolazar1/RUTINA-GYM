@@ -1030,66 +1030,60 @@ function groupBy(items, key){
 function renderExercises(items){
   const list = document.getElementById('exerciseList');
   list.innerHTML = '';
-  let cardIndex = 0;
-  const groups = groupBy(items, 'musculo');
-  Object.keys(groups).forEach(musc=>{
-    const gdiv = document.createElement('div');
-    gdiv.className = 'musc-group';
-    gdiv.innerHTML = `<div class="musc-label">${musc.replace(/^\d+\./,'')}</div>`;
-    groups[musc].forEach(ex=>{
-      const idx = ROUTINE.indexOf(ex);
-      const key = exKey(ex, idx);
-      // Si ya había estado cargado para este ejercicio (ej: al reordenar), no lo pisa
-      if(!sessionState[key]){
-        const sets = (Array.isArray(ex.sets) && ex.sets.length)
-          ? ex.sets.map(s=>({reps:s.reps, peso:s.peso}))
-          : Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
-        sessionState[key] = {done:false, sets};
-      }
-      const sets = sessionState[key].sets;
-      const card = document.createElement('div');
-      card.className = 'exercise fade-in-up';
-      card.style.animationDelay = (cardIndex++ * 45) + 'ms';
-      card.id = 'card_'+key;
-      const imgUrl = exerciseImageUrl(ex);
-      const imgHtml = imgUrl
-        ? `<img class="ex-photo" src="${imgUrl}" alt="Demostración: ${ex.ejercicio}" loading="lazy" onclick="openLightbox('${imgUrl}','${ex.ejercicio.replace(/'/g,"\\'")}')" onerror="this.closest('.ex-photo-wrap').style.display='none'">`
-        : '';
-      const allSame = sets.every(s=>s.reps===sets[0].reps && s.peso===sets[0].peso);
-      const targetText = allSame
-        ? `Objetivo: ${sets.length} series × ${sets[0].reps} rep · ${sets[0].peso} kg`
-        : `Objetivo: ${sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ')}`;
-      let superserieBadge = '';
-      if(ex.superserieId){
-        const partner = ROUTINE.find(o=>o!==ex && o.superserieId===ex.superserieId && o.dia===ex.dia);
-        if(partner) superserieBadge = `<div class="superserie-badge">🔗 Superserie con <b>${partner.ejercicio}</b> — sin descanso entre ambos</div>`;
-      }
-      card.innerHTML = `
-        <div class="ex-head">
-          ${imgUrl ? `<div class="ex-photo-wrap">${imgHtml}</div>` : ''}
-          <div style="flex:1">
-            <div class="ex-name">${ex.ejercicio}</div>
-            <div class="ex-target">${targetText}</div>
-          </div>
-          <div class="ex-move">
-            <button class="ex-move-btn" data-act="up" title="Mover antes">▲</button>
-            <button class="ex-move-btn" data-act="down" title="Mover después">▼</button>
-          </div>
-          <div class="check" id="chk_${key}">✓</div>
+  items.forEach((ex, cardIndex)=>{
+    const idx = ROUTINE.indexOf(ex);
+    const key = exKey(ex, idx);
+    // Si ya había estado cargado para este ejercicio (ej: al reordenar), no lo pisa
+    if(!sessionState[key]){
+      const sets = (Array.isArray(ex.sets) && ex.sets.length)
+        ? ex.sets.map(s=>({reps:s.reps, peso:s.peso}))
+        : Array.from({length: Math.max(1, ex.series||1)}, ()=>({reps: ex.rep, peso: ex.peso}));
+      sessionState[key] = {done:false, sets};
+    }
+    const sets = sessionState[key].sets;
+    const card = document.createElement('div');
+    card.className = 'exercise fade-in-up';
+    card.style.animationDelay = (cardIndex * 45) + 'ms';
+    card.id = 'card_'+key;
+    const imgUrl = exerciseImageUrl(ex);
+    const imgHtml = imgUrl
+      ? `<img class="ex-photo" src="${imgUrl}" alt="Demostración: ${ex.ejercicio}" loading="lazy" onclick="openLightbox('${imgUrl}','${ex.ejercicio.replace(/'/g,"\\'")}')" onerror="this.closest('.ex-photo-wrap').style.display='none'">`
+      : '';
+    const allSame = sets.every(s=>s.reps===sets[0].reps && s.peso===sets[0].peso);
+    const targetText = allSame
+      ? `Objetivo: ${sets.length} series × ${sets[0].reps} rep · ${sets[0].peso} kg`
+      : `Objetivo: ${sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ')}`;
+    let superserieBadge = '';
+    if(ex.superserieId){
+      const partner = ROUTINE.find(o=>o!==ex && o.superserieId===ex.superserieId && o.dia===ex.dia);
+      if(partner) superserieBadge = `<div class="superserie-badge">🔗 Superserie con <b>${partner.ejercicio}</b> — sin descanso entre ambos</div>`;
+    }
+    card.innerHTML = `
+      <div class="musc-label" style="margin-bottom:6px;">${(ex.musculo||'').replace(/^\d+\./,'')}</div>
+      <div class="ex-head">
+        ${imgUrl ? `<div class="ex-photo-wrap">${imgHtml}</div>` : ''}
+        <div style="flex:1">
+          <div class="ex-name">${ex.ejercicio}</div>
+          <div class="ex-target">${targetText}</div>
         </div>
-        ${superserieBadge}
-        <div class="sets-list" id="sets_${key}"></div>
-        <button class="add-set-btn" id="addset_${key}">+ Agregar serie</button>
-        <div class="tally" id="tally_${key}"></div>
-      `;
-      list.appendChild(card);
-      renderSetsList(key);
-      buildTally(key, sets.length);
-      document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
-      document.getElementById('addset_'+key).onclick = ()=> addSet(key);
-      card.querySelector('[data-act="up"]').onclick = ()=> moveExerciseInSession(key, -1);
-      card.querySelector('[data-act="down"]').onclick = ()=> moveExerciseInSession(key, 1);
-    });
+        <div class="ex-move">
+          <button class="ex-move-btn" data-act="up" title="Mover antes" ${cardIndex===0?'disabled':''}>▲</button>
+          <button class="ex-move-btn" data-act="down" title="Mover después" ${cardIndex===items.length-1?'disabled':''}>▼</button>
+        </div>
+        <div class="check" id="chk_${key}">✓</div>
+      </div>
+      ${superserieBadge}
+      <div class="sets-list" id="sets_${key}"></div>
+      <button class="add-set-btn" id="addset_${key}">+ Agregar serie</button>
+      <div class="tally" id="tally_${key}"></div>
+    `;
+    list.appendChild(card);
+    renderSetsList(key);
+    buildTally(key, sets.length);
+    document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
+    document.getElementById('addset_'+key).onclick = ()=> addSet(key);
+    card.querySelector('[data-act="up"]').onclick = ()=> moveExerciseInSession(key, -1);
+    card.querySelector('[data-act="down"]').onclick = ()=> moveExerciseInSession(key, 1);
   });
 }
 
