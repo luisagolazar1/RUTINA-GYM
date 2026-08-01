@@ -1622,10 +1622,14 @@ document.getElementById('adminEditTarget').addEventListener('change', async func
   renderEditor();
 });
 
-function backFromEditor(){
+async function backFromEditor(){
+  editTargetUser = null; // ya no estamos editando la rutina de nadie
+  await loadRoutine(currentUser); // recargar la rutina propia ANTES de mostrar la pantalla
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
-  loadRoutine(currentUser).then(()=> selectDay(currentDay)); // volver a la rutina propia
+  if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
+  renderDayChips();
+  selectDay(currentDay);
 }
 
 /* ============================================================
