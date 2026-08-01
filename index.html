@@ -1578,9 +1578,20 @@ async function persistRoutine(user){
    EDITOR DE RUTINA
    ============================================================ */
 let editTargetUser = null;
+let editTargetActiveDays = [];
+
+async function fetchActiveDaysFor(user){
+  try{
+    const r = await fetch('/api/settings?user=' + encodeURIComponent(user));
+    const data = r.ok ? await r.json() : null;
+    const days = ALL_DAYS.filter(d => (data?.activeDays||[]).includes(d));
+    return days.length ? days : ['LUN','MAR','MIE','JUE','VIE'];
+  }catch(e){ return ['LUN','MAR','MIE','JUE','VIE']; }
+}
 
 async function showEditor(){
   editTargetUser = currentUser;
+  editTargetActiveDays = ACTIVE_DAYS;
   document.getElementById('entrenoScreen').classList.remove('active');
   document.getElementById('editorScreen').classList.add('active');
   document.getElementById('editorUserLabel').textContent = currentUserName;
@@ -1607,6 +1618,7 @@ document.getElementById('adminEditTarget').addEventListener('change', async func
   editTargetUser = this.value;
   document.getElementById('editorUserLabel').textContent = this.selectedOptions[0].textContent;
   ROUTINE = ensureIds(await fetchUserRoutine(editTargetUser));
+  editTargetActiveDays = editTargetUser === currentUser ? ACTIVE_DAYS : await fetchActiveDaysFor(editTargetUser);
   renderEditor();
 });
 
@@ -1648,7 +1660,7 @@ function updateCopyModeForSource(){
   if(isSelf){
     dayAllOpt.disabled = true;
     if(document.getElementById('copy_sourceDay').value === 'ALL'){
-      document.getElementById('copy_sourceDay').value = ACTIVE_DAYS[0];
+      document.getElementById('copy_sourceDay').value = editTargetActiveDays[0];
     }
   } else {
     dayAllOpt.disabled = false;
@@ -1747,12 +1759,7 @@ async function openDaysModal(){
   if(editTargetUser === currentUser){
     daysBeingEdited = [...ACTIVE_DAYS];
   } else {
-    try{
-      const r = await fetch('/api/settings?user=' + encodeURIComponent(editTargetUser));
-      const data = r.ok ? await r.json() : {activeDays:['LUN','MAR','MIE','JUE','VIE']};
-      daysBeingEdited = ALL_DAYS.filter(d => (data.activeDays||[]).includes(d));
-      if(daysBeingEdited.length===0) daysBeingEdited = ['LUN','MAR','MIE','JUE','VIE'];
-    }catch(e){ daysBeingEdited = ['LUN','MAR','MIE','JUE','VIE']; }
+    daysBeingEdited = [...await fetchActiveDaysFor(editTargetUser)];
   }
   renderDaysCheckList();
   document.getElementById('daysModalBg').classList.add('show');
@@ -1785,6 +1792,7 @@ async function saveDaysModal(){
     return;
   }
   await persistActiveDays(editTargetUser, daysBeingEdited);
+  editTargetActiveDays = ALL_DAYS.filter(d => daysBeingEdited.includes(d));
   closeDaysModal();
   if(editTargetUser === currentUser){
     if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
@@ -1954,7 +1962,7 @@ function renderEditor(){
   const list = document.getElementById('editorList');
   list.innerHTML = '';
   const daysWithData = new Set(ROUTINE.map(e=>e.dia));
-  const daysToShow = ALL_DAYS.filter(d => ACTIVE_DAYS.includes(d) || daysWithData.has(d));
+  const daysToShow = ALL_DAYS.filter(d => editTargetActiveDays.includes(d) || daysWithData.has(d));
   daysToShow.forEach(day=>{
     const items = ROUTINE.filter(e=>e.dia===day);
     const sec = document.createElement('div');
@@ -1962,7 +1970,7 @@ function renderEditor(){
     const title = document.createElement('div');
     title.className = 'editor-day-title';
     title.style.color = DAY_COLORS[day] || 'var(--lime)';
-    title.textContent = DAY_NAMES[day] + (ACTIVE_DAYS.includes(day) ? '' : ' (día no activo)');
+    title.textContent = DAY_NAMES[day] + (editTargetActiveDays.includes(day) ? '' : ' (día no activo)');
     sec.appendChild(title);
     items.forEach((ex, i)=>{
       const img = exerciseImageUrl(ex);
@@ -2010,7 +2018,7 @@ function populateDaySelect(sel, {includeAll=false, extraDay=null}={}){
     opt.value = 'ALL'; opt.textContent = 'Toda la semana (reemplaza tu rutina completa)';
     sel.appendChild(opt);
   }
-  const days = extraDay && !ACTIVE_DAYS.includes(extraDay) ? [...ACTIVE_DAYS, extraDay] : ACTIVE_DAYS;
+  const days = extraDay && !editTargetActiveDays.includes(extraDay) ? [...editTargetActiveDays, extraDay] : editTargetActiveDays;
   ALL_DAYS.filter(d=>days.includes(d)).forEach(d=>{
     const opt = document.createElement('option');
     opt.value = d; opt.textContent = (includeAll?'Solo ':'') + DAY_NAMES[d];
@@ -2024,8 +2032,8 @@ let efIsNewExercise = true;
 function renderEfDiaList(){
   const wrap = document.getElementById('ef_diaList');
   wrap.innerHTML = '';
-  const extraDay = efSelectedDays.find(d=>!ACTIVE_DAYS.includes(d));
-  const days = extraDay ? [...ACTIVE_DAYS, extraDay] : ACTIVE_DAYS;
+  const extraDay = efSelectedDays.find(d=>!editTargetActiveDays.includes(d));
+  const days = extraDay ? [...editTargetActiveDays, extraDay] : editTargetActiveDays;
   ALL_DAYS.filter(d=>days.includes(d)).forEach(d=>{
     const checked = efSelectedDays.includes(d);
     const row = document.createElement('div');
@@ -2071,7 +2079,7 @@ function openExerciseForm(id, presetDay){
   efIsNewExercise = !ex;
   document.getElementById('exerciseFormTitle').textContent = ex ? 'Editar ejercicio' : 'Nuevo ejercicio';
   document.getElementById('ef_diaHint').textContent = efIsNewExercise ? '(podés elegir varios días)' : '';
-  efSelectedDays = ex ? [ex.dia] : [presetDay || ACTIVE_DAYS[0]];
+  efSelectedDays = ex ? [ex.dia] : [presetDay || editTargetActiveDays[0]];
   renderEfDiaList();
   document.getElementById('ef_musculo').value = ex ? ex.musculo : '';
   document.getElementById('ef_ejercicio').value = ex ? ex.ejercicio : '';
