@@ -20,6 +20,7 @@ async function fetchMuscleList(muscle, lang) {
 
 export default async function handler(req, res) {
   const muscle = (req.query.muscle || '').trim();
+  const category = (req.query.category || '').trim(); // 'stretching' para pedir solo estiramientos
   if (!muscle) return res.status(400).json({ error: 'Falta parámetro muscle' });
 
   try {
@@ -47,12 +48,17 @@ export default async function handler(req, res) {
       }
     }
 
+    if (category) {
+      combinedEs = combinedEs.filter(ex => (ex.category || '') === category);
+    }
+
     const results = combinedEs.map(ex => ({
       name: ex.name,
       nameEn: (enById[ex.id] && enById[ex.id].name) || ex.name,
       muscle: ex.muscle,
       bodyPart: ex.bodyPart,
       equipment: ex.equipment,
+      category: ex.category || 'strength',
       gifUrl: ex.gifUrl,
     }));
 

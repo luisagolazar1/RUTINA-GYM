@@ -723,6 +723,10 @@ select{
       <div id="ef_currentImgWrap" style="margin-bottom:8px;"></div>
 
       <label class="field-label">Explorar catálogo completo por grupo muscular</label>
+      <div style="display:flex; gap:8px; margin-bottom:10px;">
+        <button type="button" class="btn btn-lime" id="ef_catStrengthBtn" style="flex:1; padding:9px;">💪 Fuerza</button>
+        <button type="button" class="btn btn-ghost" id="ef_catStretchBtn" style="flex:1; padding:9px;">🧘 Estiramiento</button>
+      </div>
       <select id="ef_muscleBrowse" style="margin-bottom:10px;">
         <option value="">— Elegir grupo muscular —</option>
       </select>
@@ -2097,6 +2101,9 @@ function openExerciseForm(id, presetDay){
   document.getElementById('ef_imgResults').innerHTML = '';
   document.getElementById('ef_imgSearch').value = '';
   document.getElementById('ef_muscleBrowse').value = '';
+  ef_catFilter = 'strength';
+  document.getElementById('ef_catStrengthBtn').className = 'btn btn-lime';
+  document.getElementById('ef_catStretchBtn').className = 'btn btn-ghost';
   document.getElementById('exerciseFormBg').classList.add('show');
 }
 function closeExerciseForm(){
@@ -2449,24 +2456,51 @@ function selectZone(slug){
   selectedZone = slug;
   renderBodyMap();
 }
+let bodyMapCatFilter = 'strength';
+
 async function renderMuscleDetail(slug){
   const wrap = document.getElementById('bodyMapDetail');
   const label = MUSCLE_LABEL_ES[slug] || slug;
   const trained = getTrainedZones().has(slug);
+  bodyMapCatFilter = 'strength';
   wrap.innerHTML = `
     <div class="muscle-detail-card">
       <div class="muscle-detail-title">${label}</div>
       <div class="muscle-detail-sub">${trained ? '✅ Ya lo estás trabajando en tu rutina' : 'Todavía no tenés ejercicios para este músculo'}</div>
+      <div style="display:flex; gap:8px; margin:10px 0;">
+        <button type="button" class="btn btn-lime" id="bm_catStrengthBtn" style="flex:1; padding:8px;">💪 Fuerza</button>
+        <button type="button" class="btn btn-ghost" id="bm_catStretchBtn" style="flex:1; padding:8px;">🧘 Estiramiento</button>
+      </div>
       <div id="muscleExList" class="hint">Cargando ejercicios…</div>
     </div>
   `;
+  document.getElementById('bm_catStrengthBtn').onclick = function(){
+    bodyMapCatFilter = 'strength';
+    this.className = 'btn btn-lime';
+    document.getElementById('bm_catStretchBtn').className = 'btn btn-ghost';
+    loadMuscleDetailExercises(slug, label);
+  };
+  document.getElementById('bm_catStretchBtn').onclick = function(){
+    bodyMapCatFilter = 'stretching';
+    this.className = 'btn btn-lime';
+    document.getElementById('bm_catStrengthBtn').className = 'btn btn-ghost';
+    loadMuscleDetailExercises(slug, label);
+  };
+  await loadMuscleDetailExercises(slug, label);
+}
+async function loadMuscleDetailExercises(slug, label){
+  const list = document.getElementById('muscleExList');
+  list.className = 'hint';
+  list.textContent = 'Cargando ejercicios…';
   try{
     const apiSlug = ZONE_TO_API_SLUG[slug] || slug;
-    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(apiSlug));
+    const catParam = bodyMapCatFilter === 'stretching' ? '&category=stretching' : '';
+    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(apiSlug) + catParam);
     const data = await r.json();
-    const results = (data.results || []).slice(0, 10);
-    const list = document.getElementById('muscleExList');
-    if(results.length === 0){ list.textContent = 'Sin ejercicios disponibles para este músculo.'; return; }
+    let results = data.results || [];
+    if(bodyMapCatFilter !== 'stretching') results = results.filter(it=>it.category !== 'stretching');
+    results = results.slice(0, 10);
+    if(results.length === 0){ list.textContent = `Sin ejercicios de ${bodyMapCatFilter==='stretching'?'estiramiento':'fuerza'} para este músculo.`; return; }
     list.className = '';
     list.innerHTML = '';
     results.forEach(it=>{
@@ -2481,7 +2515,7 @@ async function renderMuscleDetail(slug){
       list.appendChild(row);
     });
   }catch(e){
-    document.getElementById('muscleExList').textContent = 'Error cargando ejercicios.';
+    list.textContent = 'Error cargando ejercicios.';
   }
 }
 function addExerciseFromBodyMap(it, muscleLabel){
@@ -2500,16 +2534,20 @@ const MUSCLE_LABEL_ES = {
   'serratus-anterior': 'Serrato', 'levator-scapulae': 'Cuello/Escápula', cardio: 'Cardio'
 };
 
+let ef_catFilter = 'strength';
+
 async function browseMuscleGroup(muscle){
   const resWrap = document.getElementById('ef_imgResults');
   if(!muscle){ resWrap.innerHTML=''; return; }
   resWrap.innerHTML = '<div class="hint">Cargando catálogo completo…</div>';
   try{
-    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(muscle));
+    const catParam = ef_catFilter === 'stretching' ? '&category=stretching' : '';
+    const r = await fetch('/api/exercise-muscle?muscle=' + encodeURIComponent(muscle) + catParam);
     const data = await r.json();
-    const results = data.results || [];
+    let results = data.results || [];
+    if(ef_catFilter !== 'stretching') results = results.filter(it=>it.category !== 'stretching');
     if(results.length === 0){
-      resWrap.innerHTML = '<div class="hint">Sin ejercicios para ese grupo.</div>';
+      resWrap.innerHTML = `<div class="hint">Sin ejercicios de ${ef_catFilter==='stretching'?'estiramiento':'fuerza'} para ese grupo.</div>`;
       return;
     }
     resWrap.innerHTML = `<div class="hint" style="width:100%;margin-bottom:4px;">${results.length} ejercicios disponibles — tocá el que corresponda</div>`;
@@ -2697,6 +2735,18 @@ document.getElementById('ef_imgSearch').addEventListener('keydown', e=>{
   });
   sel.addEventListener('change', ()=> browseMuscleGroup(sel.value));
 })();
+document.getElementById('ef_catStrengthBtn').onclick = function(){
+  ef_catFilter = 'strength';
+  this.className = 'btn btn-lime';
+  document.getElementById('ef_catStretchBtn').className = 'btn btn-ghost';
+  browseMuscleGroup(document.getElementById('ef_muscleBrowse').value);
+};
+document.getElementById('ef_catStretchBtn').onclick = function(){
+  ef_catFilter = 'stretching';
+  this.className = 'btn btn-lime';
+  document.getElementById('ef_catStrengthBtn').className = 'btn btn-ghost';
+  browseMuscleGroup(document.getElementById('ef_muscleBrowse').value);
+};
 
 function showUpdateBanner(){
   const banner = document.getElementById('updateBanner');
