@@ -605,6 +605,10 @@ select{
     <div class="display">RUTINAS</div>
     <div class="grp">Tocá un usuario para ver su rutina</div>
   </div>
+  <div class="row" id="browseFilterWrap" style="display:none;">
+    <label class="field-label">Filtrar por músculo predominante</label>
+    <select id="browseFilterSelect"></select>
+  </div>
   <div id="browseList"></div>
   <div style="height:80px"></div>
   <div class="save-bar">
@@ -1790,11 +1794,21 @@ async function saveDaysModal(){
   renderEditor();
 }
 
+function getRoutineTopZones(routine, n=3){
+  const zoneCounts = {};
+  routine.forEach(ex=>{
+    const z = classifyMuscleZone(ex);
+    if(z) zoneCounts[z] = (zoneCounts[z]||0) + 1;
+  });
+  return Object.entries(zoneCounts).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([zone,count])=>zone);
+}
+
 async function showBrowseRoutines(){
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('browseScreen').classList.add('active');
   const list = document.getElementById('browseList');
   list.innerHTML = '<p class="hint">Cargando usuarios…</p>';
+  document.getElementById('browseFilterWrap').style.display = 'none';
 
   const allUsers = await syncUsersList();
   const others = allUsers.filter(u => u.email !== currentUser);
@@ -1805,16 +1819,25 @@ async function showBrowseRoutines(){
     return;
   }
 
+  const zonesPresent = new Set();
   for(const u of others){
     const routine = await fetchUserRoutine(u.email);
     const days = new Set(routine.map(e=>e.dia)).size;
+    const topZones = getRoutineTopZones(routine, 3);
+    topZones.forEach(z=>zonesPresent.add(z));
+    const mainZone = topZones[0] || null;
     const card = document.createElement('div');
     card.className = 'browse-user-card fade-in-up';
+    card.dataset.topzone = mainZone || '';
+    const badge = mainZone
+      ? `<span style="background:${(ZONE_COLORS[mainZone]||'#C8FF3D')}22; border:1px solid ${ZONE_COLORS[mainZone]||'#C8FF3D'}; color:${ZONE_COLORS[mainZone]||'#C8FF3D'}; padding:3px 9px; border-radius:999px; font-size:10px; font-weight:700; margin-top:4px; display:inline-block;">💪 ${MUSCLE_LABEL_ES[mainZone]||mainZone}</span>`
+      : '';
     card.innerHTML = `
       <div class="avatar">${u.picture ? `<img src="${u.picture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">` : initials(u.name)}</div>
       <div>
         <div class="name">${u.name}</div>
         <div class="meta">${routine.length ? `${routine.length} ejercicios · ${days} días` : 'Sin rutina cargada todavía'}</div>
+        ${badge}
       </div>
       <div class="arrow">›</div>
     `;
@@ -1825,6 +1848,23 @@ async function showBrowseRoutines(){
     }
     list.appendChild(card);
   }
+
+  // Poblar el filtro solo con los músculos que realmente aparecen entre estos usuarios
+  const filterSel = document.getElementById('browseFilterSelect');
+  filterSel.innerHTML = '<option value="">Todos los músculos</option>';
+  Object.keys(ZONE_COLORS).filter(z=>zonesPresent.has(z)).forEach(z=>{
+    const opt = document.createElement('option');
+    opt.value = z; opt.textContent = MUSCLE_LABEL_ES[z] || z;
+    filterSel.appendChild(opt);
+  });
+  document.getElementById('browseFilterWrap').style.display = zonesPresent.size ? 'block' : 'none';
+  applyBrowseFilter();
+}
+function applyBrowseFilter(){
+  const val = document.getElementById('browseFilterSelect').value;
+  document.querySelectorAll('#browseList .browse-user-card').forEach(card=>{
+    card.style.display = (!val || card.dataset.topzone === val) ? 'flex' : 'none';
+  });
 }
 function backFromBrowse(){
   document.getElementById('browseScreen').classList.remove('active');
@@ -2631,6 +2671,7 @@ document.getElementById('openDaysModalBtn').onclick = openDaysModal;
 document.getElementById('days_cancelBtn').onclick = closeDaysModal;
 document.getElementById('days_saveBtn').onclick = saveDaysModal;
 document.getElementById('backFromBrowseBtn').onclick = backFromBrowse;
+document.getElementById('browseFilterSelect').addEventListener('change', applyBrowseFilter);
 document.getElementById('backFromSummaryBtn').onclick = backFromSummary;
 document.getElementById('useThisRoutineBtn').onclick = useThisRoutine;
 document.getElementById('copy_cancelBtn').onclick = closeCopyModal;
