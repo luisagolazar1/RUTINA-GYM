@@ -1883,18 +1883,22 @@ function backFromBrowse(){
 
 let summaryUser = null;
 
-function showRoutineSummary(user, routine){
+async function showRoutineSummary(user, routine){
   summaryUser = user;
   document.getElementById('browseScreen').classList.remove('active');
   document.getElementById('summaryScreen').classList.add('active');
   document.getElementById('summaryUserLabel').textContent = 'Rutina de ' + user.name;
 
   const list = document.getElementById('summaryList');
+  list.innerHTML = '<p class="hint">Cargando…</p>';
+
+  const userActiveDays = await fetchActiveDaysFor(user.email);
+  const activeRoutine = routine.filter(ex => userActiveDays.includes(ex.dia));
   list.innerHTML = '';
 
-  // Resumen: qué zonas trabaja más (según cantidad de ejercicios por músculo)
+  // Resumen: qué zonas trabaja más (según cantidad de ejercicios por músculo, solo días activos)
   const zoneCounts = {};
-  routine.forEach(ex=>{
+  activeRoutine.forEach(ex=>{
     const z = classifyMuscleZone(ex);
     if(z) zoneCounts[z] = (zoneCounts[z]||0) + 1;
   });
@@ -1917,7 +1921,7 @@ function showRoutineSummary(user, routine){
     list.appendChild(focusCard);
   }
 
-  DAY_ORDER.forEach(day=>{
+  DAY_ORDER.filter(day => userActiveDays.includes(day)).forEach(day=>{
     const items = routine.filter(e=>e.dia===day);
     if(items.length === 0) return;
     const card = document.createElement('div');
@@ -1963,8 +1967,7 @@ function useThisRoutine(){
 function renderEditor(){
   const list = document.getElementById('editorList');
   list.innerHTML = '';
-  const daysWithData = new Set(ROUTINE.map(e=>e.dia));
-  const daysToShow = ALL_DAYS.filter(d => editTargetActiveDays.includes(d) || daysWithData.has(d));
+  const daysToShow = ALL_DAYS.filter(d => editTargetActiveDays.includes(d));
   daysToShow.forEach(day=>{
     const items = ROUTINE.filter(e=>e.dia===day);
     const sec = document.createElement('div');
@@ -1972,7 +1975,7 @@ function renderEditor(){
     const title = document.createElement('div');
     title.className = 'editor-day-title';
     title.style.color = DAY_COLORS[day] || 'var(--lime)';
-    title.textContent = DAY_NAMES[day] + (editTargetActiveDays.includes(day) ? '' : ' (día no activo)');
+    title.textContent = DAY_NAMES[day];
     sec.appendChild(title);
     items.forEach((ex, i)=>{
       const img = exerciseImageUrl(ex);
