@@ -1216,6 +1216,10 @@ function updateProgress(){
    GUARDAR SESIÓN
    ============================================================ */
 async function saveSession(){
+  if(!currentUser){
+    alert('Se perdió tu sesión de usuario (puede pasar si la app se reinició sin conexión). Volvé a iniciar sesión con Google antes de guardar, para no perder este entrenamiento.');
+    return;
+  }
   try{
     const log = loadLog(currentUser);
 
@@ -2917,7 +2921,21 @@ function showUpdateBanner(){
   function updateOfflineBanner(){
     document.getElementById('offlineBanner').style.display = navigator.onLine ? 'none' : 'block';
   }
-  window.addEventListener('online', updateOfflineBanner);
+  async function handleReconnect(){
+    updateOfflineBanner();
+    if(!navigator.onLine) return;
+    const wasUnavailable = !CLOUD_AVAILABLE;
+    await cloudPing();
+    // Si recién ahora hay nube disponible y ya había un usuario logueado,
+    // empujar lo que se guardó localmente mientras no había conexión.
+    if(wasUnavailable && CLOUD_AVAILABLE && currentUser){
+      await cloudPush(currentUser, loadLog(currentUser));
+      await cloudPushBodyWeight(currentUser, loadBodyWeight(currentUser));
+      if(ROUTINE && ROUTINE.length) await persistRoutine(currentUser);
+      showSync('Reconectado — datos sincronizados ✓');
+    }
+  }
+  window.addEventListener('online', handleReconnect);
   window.addEventListener('offline', updateOfflineBanner);
   updateOfflineBanner();
 })();
