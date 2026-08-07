@@ -144,9 +144,25 @@ input:focus{outline:none; border-color:var(--lime);}
 }
 .exercise{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
-  padding:14px 16px; margin-bottom:10px;
+  padding:14px 16px; margin-bottom:10px; transition:padding .35s ease, border-color .3s ease, background .3s ease;
 }
-.exercise.done{border-color:var(--lime-dim); background:linear-gradient(180deg,rgba(200,255,61,.06),transparent);}
+.exercise.done{
+  border-color:var(--lime-dim); background:linear-gradient(180deg,rgba(200,255,61,.06),transparent);
+  padding-bottom:14px;
+}
+.ex-collapsible{
+  display:grid; grid-template-rows:1fr;
+  transition:grid-template-rows .35s cubic-bezier(.4,0,.2,1), opacity .25s ease;
+}
+.ex-collapsible > div{ overflow:hidden; min-height:0; }
+.exercise.done .ex-collapsible{ grid-template-rows:0fr; opacity:0; }
+.ex-target{ transition:opacity .2s ease; }
+.exercise.done .ex-target{ display:none; }
+.ex-done-summary{
+  display:none; color:var(--lime); font-size:12px; font-weight:700; margin-top:3px;
+  font-family:'JetBrains Mono',monospace;
+}
+.exercise.done .ex-done-summary{ display:block; }
 .ex-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
 .ex-photo-wrap{flex:0 0 auto;}
 .ex-photo{
@@ -1089,8 +1105,9 @@ function renderExercises(items){
       sessionState[key] = {done:false, sets};
     }
     const sets = sessionState[key].sets;
+    const isDone = sessionState[key].done;
     const card = document.createElement('div');
-    card.className = 'exercise fade-in-up';
+    card.className = 'exercise fade-in-up' + (isDone ? ' done' : '');
     card.style.animationDelay = (cardIndex * 45) + 'ms';
     card.id = 'card_'+key;
     const imgUrl = exerciseImageUrl(ex);
@@ -1101,6 +1118,7 @@ function renderExercises(items){
     const targetText = allSame
       ? `Objetivo: ${sets.length} series × ${sets[0].reps} rep · ${sets[0].peso} kg`
       : `Objetivo: ${sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ')}`;
+    const doneSummary = isDone ? '✓ ' + sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ') : '';
     let superserieBadge = '';
     if(ex.superserieId){
       const partner = ROUTINE.find(o=>o!==ex && o.superserieId===ex.superserieId && o.dia===ex.dia);
@@ -1113,17 +1131,20 @@ function renderExercises(items){
         <div style="flex:1">
           <div class="ex-name">${ex.ejercicio}</div>
           <div class="ex-target">${targetText}</div>
+          <div class="ex-done-summary" id="donesum_${key}">${doneSummary}</div>
         </div>
         <div class="ex-move">
           <button class="ex-move-btn" data-act="up" title="Mover antes" ${cardIndex===0?'disabled':''}>▲</button>
           <button class="ex-move-btn" data-act="down" title="Mover después" ${cardIndex===items.length-1?'disabled':''}>▼</button>
         </div>
-        <div class="check" id="chk_${key}">✓</div>
+        <div class="check ${isDone?'on':''}" id="chk_${key}">✓</div>
       </div>
-      ${superserieBadge}
-      <div class="sets-list" id="sets_${key}"></div>
-      <button class="add-set-btn" id="addset_${key}">+ Agregar serie</button>
-      <div class="tally" id="tally_${key}"></div>
+      <div class="ex-collapsible" id="collapse_${key}"><div>
+        ${superserieBadge}
+        <div class="sets-list" id="sets_${key}"></div>
+        <button class="add-set-btn" id="addset_${key}">+ Agregar serie</button>
+        <div class="tally" id="tally_${key}"></div>
+      </div></div>
     `;
     list.appendChild(card);
     renderSetsList(key);
@@ -1200,8 +1221,14 @@ function buildTally(key, count){
 
 function toggleDone(key){
   sessionState[key].done = !sessionState[key].done;
-  document.getElementById('chk_'+key).classList.toggle('on', sessionState[key].done);
-  document.getElementById('card_'+key).classList.toggle('done', sessionState[key].done);
+  const done = sessionState[key].done;
+  document.getElementById('chk_'+key).classList.toggle('on', done);
+  document.getElementById('card_'+key).classList.toggle('done', done);
+  if(done){
+    const sets = sessionState[key].sets;
+    const summary = sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ');
+    document.getElementById('donesum_'+key).textContent = '✓ ' + summary;
+  }
   buildTally(key, sessionState[key].sets.length);
   updateProgress();
 }
