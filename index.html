@@ -490,6 +490,10 @@ select{
 
 <div class="syncbadge" id="syncBadge">Sincronizando…</div>
 <div id="offlineBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:40; background:var(--red); color:#fff; text-align:center; padding:6px; font-size:12px; font-weight:700;">📴 Sin conexión — usando datos guardados en el celular</div>
+<div id="viewAsBanner" style="display:none; align-items:center; justify-content:space-between; gap:10px; position:fixed; top:0; left:0; right:0; z-index:39; background:#B388FF; color:#0B0D10; padding:8px 14px; font-size:12px; font-weight:700;">
+  <span>🛡️ Viendo como <span id="viewAsBannerName"></span></span>
+  <button id="exitViewAsBtn" style="background:#0B0D10; color:#B388FF; border:none; border-radius:8px; padding:5px 10px; font-weight:800; font-size:11px; cursor:pointer;">Salir</button>
+</div>
 <div id="updateBanner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:41; background:var(--lime); color:#0B0D10; text-align:center; padding:9px 12px; font-size:12px; font-weight:700; cursor:pointer;">✨ Hay una versión nueva — tocá para actualizar (no perdés lo que ya guardaste)</div>
 
 <!-- ============ LOGIN ============ -->
@@ -630,6 +634,7 @@ select{
   <div class="row" id="adminEditRow" style="display:none;">
     <label class="field-label">🛡️ Modo administrador: editar la rutina de</label>
     <select id="adminEditTarget"></select>
+    <button class="btn btn-ghost btn-block" id="viewAsBtn" style="margin-top:8px;">👁️ Ver y entrenar como este usuario</button>
   </div>
   <button class="btn btn-ghost btn-block" id="openCopyModalBtn" style="margin-bottom:8px;">📋 Copiar día/rutina</button>
   <button class="btn btn-ghost btn-block" id="openBrowseBtn" style="margin-bottom:8px;">👀 Ver rutinas de otros usuarios</button>
@@ -1226,7 +1231,7 @@ function moveExerciseInSession(key, dir){
   while(j>=0 && j<ROUTINE.length && ROUTINE[j].dia !== day) j += dir;
   if(j<0 || j>=ROUTINE.length) return; // ya está en el extremo de ese día
   [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
-  persistRoutine(currentUser);
+  persistRoutine(effectiveUser());
   renderExercises(ROUTINE.filter(e=>e.dia===currentDay)); // re-renderiza sin perder lo ya cargado
 }
 
@@ -1310,7 +1315,7 @@ async function saveSession(){
     return;
   }
   try{
-    const log = loadLog(currentUser);
+    const log = loadLog(effectiveUser());
 
     // Calcular mejores marcas ANTES de agregar la sesión nueva, para detectar récords
     const previousBest = {};
@@ -1362,9 +1367,9 @@ async function saveSession(){
       return;
     }
 
-    saveLog(currentUser, log);
-    await cloudPush(currentUser, log);
-    if(rutinaCambio) await persistRoutine(currentUser);
+    saveLog(effectiveUser(), log);
+    await cloudPush(effectiveUser(), log);
+    if(rutinaCambio) await persistRoutine(effectiveUser());
     showSync(`Sesión guardada ✓ (${guardados} ejercicio${guardados>1?'s':''}${rutinaCambio ? ' · rutina actualizada' : ''})`);
     if(newRecords.length > 0) showPRCelebration(newRecords);
   }catch(err){
@@ -1391,8 +1396,8 @@ function showPRCelebration(records){
 function showHistory(){
   document.getElementById('entrenoScreen').classList.remove('active');
   document.getElementById('histScreen').classList.add('active');
-  document.getElementById('histUserLabel').textContent = currentUser;
-  const log = loadLog(currentUser).slice().reverse();
+  document.getElementById('histUserLabel').textContent = effectiveUser();
+  const log = loadLog(effectiveUser()).slice().reverse();
   const wrap = document.getElementById('histList');
   wrap.innerHTML = '';
   if(log.length===0){
@@ -1463,8 +1468,8 @@ async function cloudPushBodyWeight(user, entries){
 async function showBodyWeight(){
   document.getElementById('histScreen').classList.remove('active');
   document.getElementById('bodyWeightScreen').classList.add('active');
-  const cloudEntries = await cloudPullBodyWeight(currentUser);
-  if(cloudEntries) saveBodyWeightLocal(currentUser, cloudEntries);
+  const cloudEntries = await cloudPullBodyWeight(effectiveUser());
+  if(cloudEntries) saveBodyWeightLocal(effectiveUser(), cloudEntries);
   renderBodyWeight();
 }
 function backFromBodyWeight(){
@@ -1482,10 +1487,10 @@ async function saveBodyWeightEntry(){
     pecho: document.getElementById('bw_pecho').value ? +document.getElementById('bw_pecho').value : null,
     brazo: document.getElementById('bw_brazo').value ? +document.getElementById('bw_brazo').value : null,
   };
-  const entries = loadBodyWeight(currentUser);
+  const entries = loadBodyWeight(effectiveUser());
   entries.push(entry);
-  saveBodyWeightLocal(currentUser, entries);
-  await cloudPushBodyWeight(currentUser, entries);
+  saveBodyWeightLocal(effectiveUser(), entries);
+  await cloudPushBodyWeight(effectiveUser(), entries);
   ['bw_peso','bw_cintura','bw_pecho','bw_brazo'].forEach(id=>document.getElementById(id).value='');
   showSync('Registro guardado ✓');
   renderBodyWeight();
@@ -1493,14 +1498,14 @@ async function saveBodyWeightEntry(){
 
 async function deleteBodyWeightEntry(fecha){
   if(!confirm('¿Borrar este registro?')) return;
-  const entries = loadBodyWeight(currentUser).filter(e=>e.fecha!==fecha);
-  saveBodyWeightLocal(currentUser, entries);
-  await cloudPushBodyWeight(currentUser, entries);
+  const entries = loadBodyWeight(effectiveUser()).filter(e=>e.fecha!==fecha);
+  saveBodyWeightLocal(effectiveUser(), entries);
+  await cloudPushBodyWeight(effectiveUser(), entries);
   renderBodyWeight();
 }
 
 function renderBodyWeight(){
-  const entries = loadBodyWeight(currentUser).slice().sort((a,b)=> new Date(a.fecha)-new Date(b.fecha));
+  const entries = loadBodyWeight(effectiveUser()).slice().sort((a,b)=> new Date(a.fecha)-new Date(b.fecha));
   const chartWrap = document.getElementById('bwChartWrap');
   const list = document.getElementById('bwList');
 
@@ -1554,7 +1559,7 @@ function renderBodyWeight(){
 }
 
 function populateProgressExerciseSelect(){
-  const log = loadLog(currentUser);
+  const log = loadLog(effectiveUser());
   const names = Array.from(new Set(log.map(e=>e.ejercicio))).sort();
   const sel = document.getElementById('progressExerciseSelect');
   sel.innerHTML = '';
@@ -1576,7 +1581,7 @@ document.getElementById('progressExerciseSelect').addEventListener('change', fun
 });
 
 function renderProgressChart(exerciseName){
-  const log = loadLog(currentUser)
+  const log = loadLog(effectiveUser())
     .filter(e=>e.ejercicio===exerciseName)
     .sort((a,b)=> new Date(a.fecha) - new Date(b.fecha));
 
@@ -1715,6 +1720,11 @@ async function persistRoutine(user){
    ============================================================ */
 let editTargetUser = null;
 let editTargetActiveDays = [];
+let viewingAsUser = null; // si el admin está viendo la app "como" otro usuario
+
+function effectiveUser(){
+  return (isAdmin() && viewingAsUser) ? viewingAsUser : currentUser;
+}
 
 async function fetchActiveDaysFor(user){
   try{
@@ -1725,13 +1735,38 @@ async function fetchActiveDaysFor(user){
   }catch(e){ return ['LUN','MAR','MIE','JUE','VIE']; }
 }
 
+async function viewAsUser(user, userName){
+  if(!isAdmin()) return;
+  viewingAsUser = user;
+  ACTIVE_DAYS = await fetchActiveDaysFor(user);
+  await loadRoutine(user);
+  document.getElementById('viewAsBanner').style.display = 'flex';
+  document.getElementById('viewAsBannerName').textContent = userName;
+  hideAllScreens();
+  document.getElementById('editorScreen').classList.remove('active');
+  document.getElementById('entrenoScreen').classList.add('active');
+  updateBottomNavActive('entrenoScreen');
+  if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
+  renderDayChips();
+  selectDay(currentDay);
+}
+async function exitViewAs(){
+  viewingAsUser = null;
+  document.getElementById('viewAsBanner').style.display = 'none';
+  ACTIVE_DAYS = await fetchActiveDaysFor(currentUser);
+  await loadRoutine(currentUser);
+  if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
+  renderDayChips();
+  selectDay(currentDay);
+}
+
 async function showEditor(){
-  editTargetUser = currentUser;
+  editTargetUser = viewingAsUser || currentUser;
   editTargetActiveDays = ACTIVE_DAYS;
   hideAllScreens();
   document.getElementById('editorScreen').classList.add('active');
   updateBottomNavActive('editorScreen');
-  document.getElementById('editorUserLabel').textContent = currentUserName;
+  document.getElementById('editorUserLabel').textContent = viewingAsUser ? document.getElementById('viewAsBannerName').textContent : currentUserName;
 
   const adminRow = document.getElementById('adminEditRow');
   if(isAdmin()){
@@ -1745,10 +1780,11 @@ async function showEditor(){
       opt.textContent = u.email === currentUser ? `${u.name} (vos)` : u.name;
       sel.appendChild(opt);
     });
-    sel.value = currentUser;
+    sel.value = editTargetUser;
   } else {
     adminRow.style.display = 'none';
   }
+  document.getElementById('openBrowseBtn').style.display = isAdmin() ? 'block' : 'none';
   renderEditor();
 }
 document.getElementById('adminEditTarget').addEventListener('change', async function(){
@@ -1761,7 +1797,7 @@ document.getElementById('adminEditTarget').addEventListener('change', async func
 
 async function backFromEditor(){
   editTargetUser = null; // ya no estamos editando la rutina de nadie
-  await loadRoutine(currentUser); // recargar la rutina propia ANTES de mostrar la pantalla
+  await loadRoutine(effectiveUser()); // recargar la rutina activa (propia o la que se está viendo) ANTES de mostrar la pantalla
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
   updateBottomNavActive('entrenoScreen');
@@ -1774,8 +1810,6 @@ async function backFromEditor(){
    COPIAR RUTINA DE OTRO USUARIO
    ============================================================ */
 async function openCopyModal(){
-  const allUsers = await syncUsersList();
-  const others = allUsers.filter(u => u.email !== editTargetUser);
   const sel = document.getElementById('copy_sourceUser');
   sel.innerHTML = '';
 
@@ -1784,11 +1818,15 @@ async function openCopyModal(){
   selfOpt.textContent = 'Tu propia rutina (copiar un día a otro)';
   sel.appendChild(selfOpt);
 
-  others.forEach(u=>{
-    const opt = document.createElement('option');
-    opt.value = u.email; opt.textContent = u.name;
-    sel.appendChild(opt);
-  });
+  if(isAdmin()){
+    const allUsers = await syncUsersList();
+    const others = allUsers.filter(u => u.email !== editTargetUser);
+    others.forEach(u=>{
+      const opt = document.createElement('option');
+      opt.value = u.email; opt.textContent = u.name;
+      sel.appendChild(opt);
+    });
+  }
 
   sel.value = '__self__';
   populateDaySelect(document.getElementById('copy_sourceDay'), {includeAll:true});
@@ -2668,7 +2706,7 @@ function showDashboard(){
 }
 
 function renderDashboard(){
-  const log = loadLog(currentUser);
+  const log = loadLog(effectiveUser());
   renderDashStats(log);
   renderDashCalendar(log);
 }
@@ -2777,7 +2815,7 @@ function dashChangeMonth(delta){
   if(dashCalMonth < 0){ dashCalMonth = 11; dashCalYear--; }
   if(dashCalMonth > 11){ dashCalMonth = 0; dashCalYear++; }
   document.getElementById('dashDayDetail').innerHTML = '';
-  renderDashCalendar(loadLog(currentUser));
+  renderDashCalendar(loadLog(effectiveUser()));
 }
 
 function goHome(){
@@ -3091,6 +3129,11 @@ document.getElementById('shareCloseBtn').onclick = closeShareModal;
 document.getElementById('shareWhatsappBtn').onclick = shareViaWhatsapp;
 document.getElementById('shareCopyBtn').onclick = shareCopyLink;
 document.getElementById('openBrowseBtn').onclick = showBrowseRoutines;
+document.getElementById('viewAsBtn').onclick = ()=>{
+  const sel = document.getElementById('adminEditTarget');
+  viewAsUser(sel.value, sel.selectedOptions[0].textContent);
+};
+document.getElementById('exitViewAsBtn').onclick = exitViewAs;
 document.getElementById('openTemplatesBtn').onclick = showTemplates;
 document.getElementById('backFromTemplatesBtn').onclick = backFromTemplates;
 document.getElementById('backFromTemplatePreviewBtn').onclick = backFromTemplatePreview;
