@@ -225,12 +225,26 @@ input:focus{outline:none; border-color:var(--lime);}
 .tally-mark.filled{background:var(--lime); border-color:var(--lime);}
 
 .save-bar{
-  position:fixed; bottom:0; left:0; right:0; z-index:20;
+  position:fixed; bottom:calc(58px + env(safe-area-inset-bottom)); left:0; right:0; z-index:20;
   background:rgba(11,13,16,.95); backdrop-filter:blur(10px); border-top:1px solid var(--line);
-  padding:12px 18px calc(12px + env(safe-area-inset-bottom));
-  display:flex; gap:10px; max-width:640px; margin:0 auto;
+  padding:12px 18px; display:flex; gap:10px; max-width:640px; margin:0 auto;
 }
 .save-bar .btn{flex:1;}
+
+/* Menú principal fijo abajo */
+.main-bottom-nav{
+  position:fixed; bottom:0; left:0; right:0; z-index:22;
+  background:rgba(11,13,16,.97); backdrop-filter:blur(10px); border-top:1px solid var(--line);
+  display:flex; max-width:640px; margin:0 auto;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.mbn-tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:9px 2px 8px; background:none; border:none; color:var(--muted); cursor:pointer;
+  font-family:'Inter',sans-serif; font-size:10px; font-weight:600; transition:color .15s, transform .12s ease;
+}
+.mbn-tab:active{transform:scale(.92);}
+.mbn-tab.active{color:var(--lime);}
 
 /* Bottom nav */
 .tabbar{
@@ -402,6 +416,18 @@ input:focus{outline:none; border-color:var(--lime);}
 .summary-ex-item .dot{width:5px; height:5px; border-radius:50%; background:var(--lime-dim); flex:0 0 auto;}
 .summary-ex-item .ex-meta{color:var(--muted); font-size:11px; margin-left:auto; font-family:'JetBrains Mono',monospace;}
 
+/* Calendario del panel */
+.dash-cal-cell{
+  aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+  border-radius:8px; font-size:12px; font-weight:600; color:var(--muted);
+  background:var(--surface-2); border:1px solid var(--line);
+}
+.dash-cal-cell.trained{
+  background:rgba(200,255,61,.18); border-color:var(--lime); color:var(--lime); font-weight:800; cursor:pointer;
+}
+.dash-cal-cell.trained:active{transform:scale(.9);}
+.dash-cal-cell.today{ box-shadow:0 0 0 1.5px #fff inset; }
+
 /* Configurar días de entrenamiento */
 .day-check-row{
   display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -486,24 +512,34 @@ select{
       <span class="display">RUTINA</span>
     </div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <button class="icon-btn" id="bodyMapNavBtn" title="Mi cuerpo">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
-          <circle cx="12" cy="5" r="2.5"></circle>
-          <path d="M12 7.5v6M12 13.5l-3.5 7M12 13.5l3.5 7M8 10h8"></path>
-        </svg>
-      </button>
-      <button class="icon-btn" id="shareNavBtn" title="Compartir app">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:block; margin:auto;">
-          <polyline points="15 4 20 9 15 14"></polyline>
-          <path d="M4 20v-7a4 4 0 0 1 4-4h12"></path>
-        </svg>
-      </button>
-      <button class="icon-btn" id="editorNavBtn" title="Editar rutina">✎</button>
       <div class="userpill" id="userPill">
         <div class="avatar" id="pillAvatar">?</div>
         <span id="pillName">Usuario</span>
       </div>
     </div>
+  </div>
+
+  <div class="main-bottom-nav" id="mainBottomNav">
+    <button class="mbn-tab" id="mbnHomeBtn" data-screen="entrenoScreen">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"></path><path d="M5 10v10h14V10"></path></svg>
+      <span>Inicio</span>
+    </button>
+    <button class="mbn-tab" id="mbnBodyBtn" data-screen="bodyMapScreen">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"></circle><path d="M12 7.5v6M12 13.5l-3.5 7M12 13.5l3.5 7M8 10h8"></path></svg>
+      <span>Cuerpo</span>
+    </button>
+    <button class="mbn-tab" id="mbnDashboardBtn" data-screen="dashboardScreen">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+      <span>Panel</span>
+    </button>
+    <button class="mbn-tab" id="mbnEditorBtn" data-screen="editorScreen">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+      <span>Editar</span>
+    </button>
+    <button class="mbn-tab" id="mbnShareBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 4 20 9 15 14"></polyline><path d="M4 20v-7a4 4 0 0 1 4-4h12"></path></svg>
+      <span>Compartir</span>
+    </button>
   </div>
 
   <div class="screen active" id="entrenoScreen">
@@ -690,6 +726,31 @@ select{
     <button class="btn btn-ghost" id="backFromTemplatePreviewBtn">← Volver</button>
     <button class="btn btn-lime btn-block" id="useTemplateBtn">✅ Usar esta rutina</button>
   </div>
+</div>
+
+<!-- ============ PANEL (dashboard) ============ -->
+<div class="screen" id="dashboardScreen">
+  <div class="day-title">
+    <div class="display">PANEL</div>
+    <div class="grp">Tu actividad de un vistazo</div>
+  </div>
+  <div id="dashStatsRow" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;"></div>
+  <div class="muscle-detail-card" style="margin-bottom:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div class="muscle-detail-title" id="dashCalTitle" style="font-size:18px;">Calendario</div>
+      <div style="display:flex; gap:6px;">
+        <button class="ex-move-btn" id="dashPrevMonthBtn" style="width:30px;height:26px;">‹</button>
+        <button class="ex-move-btn" id="dashNextMonthBtn" style="width:30px;height:26px;">›</button>
+      </div>
+    </div>
+    <div id="dashCalGrid"></div>
+    <p class="hint" style="text-align:center; margin-top:10px;">
+      <span style="color:var(--lime);">●</span> Entrenaste &nbsp;&nbsp;
+      <span style="color:var(--surface-2); text-shadow:0 0 0 1px var(--line);">●</span> Sin sesión
+    </p>
+  </div>
+  <div id="dashDayDetail"></div>
+  <div style="height:100px"></div>
 </div>
 
 <!-- ============ MODAL RÉCORD PERSONAL ============ -->
@@ -1056,6 +1117,7 @@ async function enterApp(){
   if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
   renderDayChips();
   selectDay(currentDay);
+  updateBottomNavActive('entrenoScreen');
 }
 
 /* ============================================================
@@ -1357,6 +1419,7 @@ function showHistory(){
 function backToEntreno(){
   document.getElementById('histScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
+  updateBottomNavActive('entrenoScreen');
 }
 
 /* ============================================================
@@ -1665,8 +1728,9 @@ async function fetchActiveDaysFor(user){
 async function showEditor(){
   editTargetUser = currentUser;
   editTargetActiveDays = ACTIVE_DAYS;
-  document.getElementById('entrenoScreen').classList.remove('active');
+  hideAllScreens();
   document.getElementById('editorScreen').classList.add('active');
+  updateBottomNavActive('editorScreen');
   document.getElementById('editorUserLabel').textContent = currentUserName;
 
   const adminRow = document.getElementById('adminEditRow');
@@ -1700,6 +1764,7 @@ async function backFromEditor(){
   await loadRoutine(currentUser); // recargar la rutina propia ANTES de mostrar la pantalla
   document.getElementById('editorScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
+  updateBottomNavActive('entrenoScreen');
   if(!ACTIVE_DAYS.includes(currentDay)) currentDay = ACTIVE_DAYS[0];
   renderDayChips();
   selectDay(currentDay);
@@ -2579,15 +2644,158 @@ const DAY_COLORS = {
   VIE: '#B388FF', SAB: '#FFE14D', DOM: '#35D0BA'
 };
 
+function hideAllScreens(){
+  document.querySelectorAll('.screen.active').forEach(s=>s.classList.remove('active'));
+}
+function updateBottomNavActive(screenId){
+  document.querySelectorAll('.mbn-tab').forEach(tab=>{
+    tab.classList.toggle('active', tab.dataset.screen === screenId);
+  });
+}
+/* ============================================================
+   PANEL / DASHBOARD (estadísticas + calendario)
+   ============================================================ */
+let dashCalYear, dashCalMonth; // mes que se está mostrando (0-indexado)
+
+function showDashboard(){
+  hideAllScreens();
+  document.getElementById('dashboardScreen').classList.add('active');
+  updateBottomNavActive('dashboardScreen');
+  const now = new Date();
+  dashCalYear = now.getFullYear();
+  dashCalMonth = now.getMonth();
+  renderDashboard();
+}
+
+function renderDashboard(){
+  const log = loadLog(currentUser);
+  renderDashStats(log);
+  renderDashCalendar(log);
+}
+
+function renderDashStats(log){
+  const now = new Date();
+  const startOfWeek = new Date(now);
+  const dow = (now.getDay() + 6) % 7; // lunes = 0
+  startOfWeek.setDate(now.getDate() - dow);
+  startOfWeek.setHours(0,0,0,0);
+
+  const sessionDates = new Set(log.map(e => new Date(e.fecha).toDateString()));
+  const weekSessions = new Set(
+    log.filter(e => new Date(e.fecha) >= startOfWeek).map(e => new Date(e.fecha).toDateString())
+  ).size;
+
+  // Racha: días consecutivos entrenados contando hacia atrás desde hoy (o ayer si hoy no entrenó todavía)
+  let streak = 0;
+  let cursor = new Date(now); cursor.setHours(0,0,0,0);
+  if(!sessionDates.has(cursor.toDateString())) cursor.setDate(cursor.getDate()-1);
+  while(sessionDates.has(cursor.toDateString())){
+    streak++;
+    cursor.setDate(cursor.getDate()-1);
+  }
+
+  const weekVolume = log
+    .filter(e => new Date(e.fecha) >= startOfWeek)
+    .reduce((sum,e) => sum + (Array.isArray(e.sets) ? e.sets.reduce((s,x)=>s+(x.reps||0)*(x.peso||0),0) : 0), 0);
+
+  const totalSessions = sessionDates.size;
+
+  document.getElementById('dashStatsRow').innerHTML = `
+    <div class="muscle-detail-card" style="padding:14px; text-align:center;">
+      <div style="font-size:26px; font-weight:800; color:var(--lime);">${streak}</div>
+      <div class="hint" style="margin:2px 0 0;">🔥 Racha (días seguidos)</div>
+    </div>
+    <div class="muscle-detail-card" style="padding:14px; text-align:center;">
+      <div style="font-size:26px; font-weight:800; color:var(--lime);">${weekSessions}</div>
+      <div class="hint" style="margin:2px 0 0;">Sesiones esta semana</div>
+    </div>
+    <div class="muscle-detail-card" style="padding:14px; text-align:center;">
+      <div style="font-size:22px; font-weight:800; color:var(--lime);">${weekVolume.toLocaleString('es-AR')}kg</div>
+      <div class="hint" style="margin:2px 0 0;">Volumen esta semana</div>
+    </div>
+    <div class="muscle-detail-card" style="padding:14px; text-align:center;">
+      <div style="font-size:26px; font-weight:800; color:var(--lime);">${totalSessions}</div>
+      <div class="hint" style="margin:2px 0 0;">Sesiones totales</div>
+    </div>
+  `;
+}
+
+const DASH_MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function renderDashCalendar(log){
+  document.getElementById('dashCalTitle').textContent = `${DASH_MONTH_NAMES[dashCalMonth]} ${dashCalYear}`;
+
+  const sessionsByDay = {}; // 'YYYY-M-D' -> [entries]
+  log.forEach(e=>{
+    const d = new Date(e.fecha);
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    (sessionsByDay[key] = sessionsByDay[key] || []).push(e);
+  });
+
+  const firstDay = new Date(dashCalYear, dashCalMonth, 1);
+  const daysInMonth = new Date(dashCalYear, dashCalMonth+1, 0).getDate();
+  const startOffset = (firstDay.getDay()+6)%7; // lunes primero
+  const todayStr = new Date().toDateString();
+
+  let html = '<div style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center;">';
+  ['L','M','X','J','V','S','D'].forEach(d=> html += `<div class="hint" style="margin:0;">${d}</div>`);
+  for(let i=0;i<startOffset;i++) html += '<div></div>';
+  for(let day=1; day<=daysInMonth; day++){
+    const key = `${dashCalYear}-${dashCalMonth}-${day}`;
+    const entries = sessionsByDay[key];
+    const cellDate = new Date(dashCalYear, dashCalMonth, day);
+    const isToday = cellDate.toDateString() === todayStr;
+    const trained = !!entries;
+    html += `<div class="dash-cal-cell${trained?' trained':''}${isToday?' today':''}" data-key="${key}">${day}</div>`;
+  }
+  html += '</div>';
+  document.getElementById('dashCalGrid').innerHTML = html;
+
+  document.querySelectorAll('.dash-cal-cell.trained').forEach(cell=>{
+    cell.onclick = ()=> showDashDayDetail(cell.dataset.key, sessionsByDay[cell.dataset.key]);
+  });
+}
+
+function showDashDayDetail(key, entries){
+  const [y,m,d] = key.split('-').map(Number);
+  const dateLabel = new Date(y,m,d).toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long'});
+  const wrap = document.getElementById('dashDayDetail');
+  wrap.innerHTML = `
+    <div class="muscle-detail-card fade-in-up">
+      <div class="muscle-detail-title" style="font-size:16px; text-transform:capitalize;">${dateLabel}</div>
+      <div class="muscle-detail-sub">${entries.length} ejercicio${entries.length>1?'s':''} registrados</div>
+      ${entries.map(e=>{
+        const setsTxt = Array.isArray(e.sets) ? e.sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ') : '';
+        return `<div class="summary-ex-item"><span class="dot"></span><span>${e.ejercicio}</span><span class="ex-meta">${setsTxt}</span></div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function dashChangeMonth(delta){
+  dashCalMonth += delta;
+  if(dashCalMonth < 0){ dashCalMonth = 11; dashCalYear--; }
+  if(dashCalMonth > 11){ dashCalMonth = 0; dashCalYear++; }
+  document.getElementById('dashDayDetail').innerHTML = '';
+  renderDashCalendar(loadLog(currentUser));
+}
+
+function goHome(){
+  hideAllScreens();
+  document.getElementById('entrenoScreen').classList.add('active');
+  updateBottomNavActive('entrenoScreen');
+}
 function showBodyMap(){
-  document.getElementById('entrenoScreen').classList.remove('active');
+  hideAllScreens();
   document.getElementById('bodyMapScreen').classList.add('active');
+  updateBottomNavActive('bodyMapScreen');
   selectedZone = null;
   renderBodyMap();
 }
 function backFromBodyMap(){
   document.getElementById('bodyMapScreen').classList.remove('active');
   document.getElementById('entrenoScreen').classList.add('active');
+  updateBottomNavActive('entrenoScreen');
 }
 function setBodyView(view){
   bodyMapView = view;
@@ -2867,14 +3075,18 @@ document.getElementById('openBodyWeightBtn').onclick = showBodyWeight;
 document.getElementById('backFromBodyWeightBtn').onclick = backFromBodyWeight;
 document.getElementById('bw_saveBtn').onclick = saveBodyWeightEntry;
 document.getElementById('backFromProgressBtn').onclick = backFromProgress;
-document.getElementById('editorNavBtn').onclick = showEditor;
+document.getElementById('mbnEditorBtn').onclick = showEditor;
 document.getElementById('backFromEditorBtn').onclick = backFromEditor;
 document.getElementById('openCopyModalBtn').onclick = openCopyModal;
-document.getElementById('bodyMapNavBtn').onclick = showBodyMap;
+document.getElementById('mbnBodyBtn').onclick = showBodyMap;
 document.getElementById('backFromBodyMapBtn').onclick = backFromBodyMap;
 document.getElementById('bodyViewFrontBtn').onclick = ()=> setBodyView('front');
 document.getElementById('bodyViewBackBtn').onclick = ()=> setBodyView('back');
-document.getElementById('shareNavBtn').onclick = openShareModal;
+document.getElementById('mbnShareBtn').onclick = openShareModal;
+document.getElementById('mbnHomeBtn').onclick = goHome;
+document.getElementById('mbnDashboardBtn').onclick = showDashboard;
+document.getElementById('dashPrevMonthBtn').onclick = ()=> dashChangeMonth(-1);
+document.getElementById('dashNextMonthBtn').onclick = ()=> dashChangeMonth(1);
 document.getElementById('shareCloseBtn').onclick = closeShareModal;
 document.getElementById('shareWhatsappBtn').onclick = shareViaWhatsapp;
 document.getElementById('shareCopyBtn').onclick = shareCopyLink;
