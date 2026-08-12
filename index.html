@@ -165,6 +165,7 @@ input:focus{outline:none; border-color:var(--lime);}
 }
 .exercise.dragging.drag-right{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
 .exercise.dragging.drag-left{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
+.exercise.pressing{ transform:scale(.98); opacity:.85; transition:transform .15s ease, opacity .15s ease; }
 
 .exercise{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -400,6 +401,7 @@ input:focus{outline:none; border-color:var(--lime);}
 }
 .editor-row.dragging.drag-down{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
 .editor-row.dragging.drag-up{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
+.editor-row.pressing{ transform:scale(.98); opacity:.85; transition:transform .15s ease, opacity .15s ease; }
 
 /* Explorar rutinas de otros usuarios */
 .browse-user-card{
@@ -1316,12 +1318,13 @@ function moveExerciseInSession(key, dir){
 }
 
 function attachDragReorder(card, key){
-  const LONG_PRESS_MS = 380;
-  const MOVE_CANCEL_PX = 10;
+  const LONG_PRESS_MS = 350;
+  const MOVE_CANCEL_PX = 20;
   let startX = 0, longPressTimer = null, dragging = false, moved = false;
 
   function endDrag(commitDir){
     clearTimeout(longPressTimer);
+    card.classList.remove('pressing');
     if(dragging){
       const list = document.getElementById('exerciseList');
       list.classList.remove('drag-active');
@@ -1338,9 +1341,11 @@ function attachDragReorder(card, key){
     if(e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
     moved = false;
+    card.classList.add('pressing');
     longPressTimer = setTimeout(()=>{
       if(!moved){
         dragging = true;
+        card.classList.remove('pressing');
         card.classList.add('dragging');
         document.getElementById('exerciseList').classList.add('drag-active');
         if(navigator.vibrate) navigator.vibrate(15);
@@ -1352,7 +1357,7 @@ function attachDragReorder(card, key){
     if(e.touches.length !== 1) return;
     const delta = e.touches[0].clientX - startX;
     if(!dragging){
-      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); }
+      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); card.classList.remove('pressing'); }
       return;
     }
     e.preventDefault();
@@ -1363,6 +1368,7 @@ function attachDragReorder(card, key){
   }, {passive:false});
 
   card.addEventListener('touchend', (e)=>{
+    card.classList.remove('pressing');
     if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
     const delta = (e.changedTouches?.[0]?.clientX ?? startX) - startX;
     const threshold = 70;
@@ -3246,12 +3252,13 @@ function moveExercise(id, dir){
 }
 
 function attachVerticalDragReorder(row, id){
-  const LONG_PRESS_MS = 380;
-  const MOVE_CANCEL_PX = 10;
+  const LONG_PRESS_MS = 350;
+  const MOVE_CANCEL_PX = 20;
   let startY = 0, longPressTimer = null, dragging = false, moved = false;
 
   function endDrag(commitDir){
     clearTimeout(longPressTimer);
+    row.classList.remove('pressing');
     if(dragging){
       row.classList.remove('dragging','drag-up','drag-down');
       row.style.transition = 'transform .25s cubic-bezier(.34,1.56,.64,1)';
@@ -3266,9 +3273,11 @@ function attachVerticalDragReorder(row, id){
     if(e.touches.length !== 1) return;
     startY = e.touches[0].clientY;
     moved = false;
+    row.classList.add('pressing');
     longPressTimer = setTimeout(()=>{
       if(!moved){
         dragging = true;
+        row.classList.remove('pressing');
         row.classList.add('dragging');
         if(navigator.vibrate) navigator.vibrate(15);
       }
@@ -3279,7 +3288,7 @@ function attachVerticalDragReorder(row, id){
     if(e.touches.length !== 1) return;
     const delta = e.touches[0].clientY - startY;
     if(!dragging){
-      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); }
+      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); row.classList.remove('pressing'); }
       return;
     }
     e.preventDefault();
@@ -3290,6 +3299,7 @@ function attachVerticalDragReorder(row, id){
   }, {passive:false});
 
   row.addEventListener('touchend', (e)=>{
+    row.classList.remove('pressing');
     if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
     const delta = (e.changedTouches?.[0]?.clientY ?? startY) - startY;
     const threshold = 50;
