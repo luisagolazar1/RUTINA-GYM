@@ -391,9 +391,15 @@ input:focus{outline:none; border-color:var(--lime);}
   background:var(--surface-2); color:var(--text); font-size:14px; cursor:pointer; flex:0 0 auto;
 }
 .editor-btn.danger{color:var(--red); border-color:var(--red);}
-.editor-move{display:flex; flex-direction:column; gap:3px; flex:0 0 auto;}
-.editor-btn.small{width:26px; height:26px; font-size:10px; padding:0;}
-.editor-btn.small:disabled{opacity:.25; cursor:default;}
+
+/* Reordenar en el editor: mantener presionado y arrastrar verticalmente */
+.editor-row{ touch-action:pan-y; will-change:transform; }
+.editor-row.dragging{
+  z-index:5; box-shadow:0 10px 30px rgba(0,0,0,.5); border-color:var(--lime);
+  transition:box-shadow .15s ease, border-color .15s ease;
+}
+.editor-row.dragging.drag-down{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
+.editor-row.dragging.drag-up{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
 
 /* Explorar rutinas de otros usuarios */
 .browse-user-card{
@@ -666,6 +672,7 @@ select{
   <button class="btn btn-ghost btn-block" id="openBrowseBtn" style="margin-bottom:8px;">👀 Ver rutinas de otros usuarios</button>
   <button class="btn btn-ghost btn-block" id="openTemplatesBtn" style="margin-bottom:8px;">📚 Elegir rutina predeterminada</button>
   <button class="btn btn-ghost btn-block" id="openDaysModalBtn" style="margin-bottom:16px;">📅 Configurar días de entrenamiento</button>
+  <p class="hint" style="margin-bottom:8px;">✋ Mantené presionado un ejercicio y arrastrá arriba/abajo para reordenarlo.</p>
   <div id="editorList"></div>
   <div style="height:80px"></div>
   <div class="save-bar">
@@ -1234,10 +1241,6 @@ function renderExercises(items){
           <div class="ex-target">${targetText}</div>
           <div class="ex-done-summary" id="donesum_${key}">${doneSummary}</div>
         </div>
-        <div class="ex-move">
-          <button class="ex-move-btn" data-act="up" title="Mover antes" ${cardIndex===0?'disabled':''}>▲</button>
-          <button class="ex-move-btn" data-act="down" title="Mover después" ${cardIndex===items.length-1?'disabled':''}>▼</button>
-        </div>
         <div class="check ${isDone?'on':''}" id="chk_${key}">✓</div>
       </div>
       <div class="ex-collapsible" id="collapse_${key}"><div>
@@ -1252,8 +1255,6 @@ function renderExercises(items){
     buildTally(key, sets.length);
     document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
     document.getElementById('addset_'+key).onclick = ()=> addSet(key);
-    card.querySelector('[data-act="up"]').onclick = ()=> moveExerciseInSession(key, -1);
-    card.querySelector('[data-act="down"]').onclick = ()=> moveExerciseInSession(key, 1);
     attachDragReorder(card, key);
   });
   renderExerciseDots();
@@ -2417,17 +2418,12 @@ function renderEditor(){
           <div class="editor-name">${ex.ejercicio}${ex.superserieId ? ' <span style="color:#FF9F40;font-size:11px;">🔗</span>' : ''}</div>
           <div class="editor-meta">${ex.musculo} · ${ex.series}×${ex.rep} · ${ex.peso}kg</div>
         </div>
-        <div class="editor-move">
-          <button class="editor-btn small" data-act="up" ${i===0?'disabled':''}>▲</button>
-          <button class="editor-btn small" data-act="down" ${i===items.length-1?'disabled':''}>▼</button>
-        </div>
         <button class="editor-btn" data-act="edit">✎</button>
         <button class="editor-btn danger" data-act="del">🗑</button>
       `;
       row.querySelector('[data-act="edit"]').onclick = ()=> openExerciseForm(ex._id);
       row.querySelector('[data-act="del"]').onclick = ()=> deleteExercise(ex._id);
-      row.querySelector('[data-act="up"]').onclick = ()=> moveExercise(ex._id, -1);
-      row.querySelector('[data-act="down"]').onclick = ()=> moveExercise(ex._id, 1);
+      attachVerticalDragReorder(row, ex._id);
       sec.appendChild(row);
     });
     const addBtn = document.createElement('button');
@@ -3247,6 +3243,62 @@ function moveExercise(id, dir){
   [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
   persistRoutine(editTargetUser);
   renderEditor();
+}
+
+function attachVerticalDragReorder(row, id){
+  const LONG_PRESS_MS = 380;
+  const MOVE_CANCEL_PX = 10;
+  let startY = 0, longPressTimer = null, dragging = false, moved = false;
+
+  function endDrag(commitDir){
+    clearTimeout(longPressTimer);
+    if(dragging){
+      row.classList.remove('dragging','drag-up','drag-down');
+      row.style.transition = 'transform .25s cubic-bezier(.34,1.56,.64,1)';
+      row.style.transform = '';
+      setTimeout(()=>{ row.style.transition = ''; }, 260);
+      if(commitDir) moveExercise(id, commitDir);
+    }
+    dragging = false; moved = false;
+  }
+
+  row.addEventListener('touchstart', (e)=>{
+    if(e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+    moved = false;
+    longPressTimer = setTimeout(()=>{
+      if(!moved){
+        dragging = true;
+        row.classList.add('dragging');
+        if(navigator.vibrate) navigator.vibrate(15);
+      }
+    }, LONG_PRESS_MS);
+  }, {passive:true});
+
+  row.addEventListener('touchmove', (e)=>{
+    if(e.touches.length !== 1) return;
+    const delta = e.touches[0].clientY - startY;
+    if(!dragging){
+      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); }
+      return;
+    }
+    e.preventDefault();
+    const clamped = Math.max(-90, Math.min(90, delta));
+    row.style.transform = `translateY(${clamped}px) scale(1.02)`;
+    row.classList.toggle('drag-down', delta > 45);
+    row.classList.toggle('drag-up', delta < -45);
+  }, {passive:false});
+
+  row.addEventListener('touchend', (e)=>{
+    if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
+    const delta = (e.changedTouches?.[0]?.clientY ?? startY) - startY;
+    const threshold = 50;
+    let dir = 0;
+    if(delta > threshold) dir = 1;
+    else if(delta < -threshold) dir = -1;
+    endDrag(dir);
+  });
+  row.addEventListener('touchcancel', ()=> endDrag(0));
 }
 
 
