@@ -144,12 +144,12 @@ input:focus{outline:none; border-color:var(--lime);}
 }
 #exerciseList{
   display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
-  gap:12px; margin:0 -18px; padding:0 18px 8px;
   scroll-behavior:smooth; -webkit-overflow-scrolling:touch;
 }
 #exerciseList::-webkit-scrollbar{ display:none; }
 #exerciseList .exercise{
-  flex:0 0 calc(100% - 36px); scroll-snap-align:center; margin-bottom:0;
+  flex:0 0 100%; width:100%; box-sizing:border-box;
+  scroll-snap-align:start; margin:0;
 }
 .exercise-dots{ display:flex; gap:6px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
 .exercise-dot{ width:8px; height:8px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); transition:background .2s, transform .2s; flex:0 0 auto; }
