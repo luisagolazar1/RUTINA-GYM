@@ -145,7 +145,9 @@ input:focus{outline:none; border-color:var(--lime);}
 #exerciseList{
   display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
   scroll-behavior:smooth; -webkit-overflow-scrolling:touch;
+  cursor:grab;
 }
+#exerciseList.mouse-dragging{ cursor:grabbing; scroll-snap-type:none; user-select:none; }
 #exerciseList::-webkit-scrollbar{ display:none; }
 #exerciseList .exercise{
   flex:0 0 100%; width:100%; box-sizing:border-box;
@@ -787,6 +789,25 @@ select{
     <div class="grp">Tu actividad de un vistazo</div>
   </div>
   <div id="dashStatsRow" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;"></div>
+
+  <div class="muscle-detail-card" style="margin-bottom:16px;">
+    <div class="muscle-detail-title" style="font-size:18px; margin-bottom:2px;">📊 Ejercicios por día de la semana</div>
+    <div class="muscle-detail-sub" style="margin-bottom:12px;">Cantidad total registrada, según el historial</div>
+    <div id="dashWeekdayChart"></div>
+  </div>
+
+  <div class="muscle-detail-card" style="margin-bottom:16px;">
+    <div class="muscle-detail-title" style="font-size:18px; margin-bottom:2px;">💪 Grupos musculares trabajados</div>
+    <div class="muscle-detail-sub" id="dashMuscleTopSub" style="margin-bottom:12px;"></div>
+    <div id="dashMuscleChart"></div>
+  </div>
+
+  <div class="muscle-detail-card" style="margin-bottom:16px;">
+    <div class="muscle-detail-title" style="font-size:18px; margin-bottom:2px;">⚠️ Músculos sin trabajar</div>
+    <div class="muscle-detail-sub" style="margin-bottom:12px;">Nunca aparecieron en tus sesiones registradas</div>
+    <div id="dashMissingMuscles"></div>
+  </div>
+
   <div class="muscle-detail-card" style="margin-bottom:16px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
       <div class="muscle-detail-title" id="dashCalTitle" style="font-size:18px;">Calendario</div>
@@ -1403,9 +1424,10 @@ function attachDotDragReorder(dot, key){
     dragging = false; moved = false; stepsMoved = 0;
   }
 
-  dot.addEventListener('touchstart', (e)=>{
-    if(e.touches.length !== 1) return;
-    startX = e.touches[0].clientX;
+  dot.addEventListener('pointerdown', (e)=>{
+    if(e.pointerType === 'mouse' && e.button !== 0) return; // solo click izquierdo
+    dot.setPointerCapture(e.pointerId);
+    startX = e.clientX;
     moved = false; stepsMoved = 0;
     dot.classList.add('pressing');
     longPressTimer = setTimeout(()=>{
@@ -1417,11 +1439,10 @@ function attachDotDragReorder(dot, key){
         if(navigator.vibrate) navigator.vibrate(15);
       }
     }, LONG_PRESS_MS);
-  }, {passive:true});
+  });
 
-  dot.addEventListener('touchmove', (e)=>{
-    if(e.touches.length !== 1) return;
-    const rawDelta = e.touches[0].clientX - startX;
+  dot.addEventListener('pointermove', (e)=>{
+    const rawDelta = e.clientX - startX;
     if(!dragging){
       if(Math.abs(rawDelta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); dot.classList.remove('pressing'); }
       return;
@@ -1437,10 +1458,10 @@ function attachDotDragReorder(dot, key){
         if(navigator.vibrate) navigator.vibrate(8);
       }
     }
-  }, {passive:false});
+  });
 
-  dot.addEventListener('touchend', endDrag);
-  dot.addEventListener('touchcancel', endDrag);
+  dot.addEventListener('pointerup', endDrag);
+  dot.addEventListener('pointercancel', endDrag);
 }
 
 function renderSetsList(key){
@@ -2935,7 +2956,98 @@ function showDashboard(){
 function renderDashboard(){
   const log = loadLog(effectiveUser());
   renderDashStats(log);
+  renderDashWeekdayChart(log);
+  renderDashMuscleChart(log);
   renderDashCalendar(log);
+}
+
+const DASH_WEEKDAY_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+function renderDashWeekdayChart(log){
+  const counts = [0,0,0,0,0,0,0]; // lunes=0 ... domingo=6
+  log.forEach(e=>{
+    const d = new Date(e.fecha);
+    const idx = (d.getDay()+6)%7;
+    counts[idx]++;
+  });
+  const max = Math.max(...counts, 1);
+  const wrap = document.getElementById('dashWeekdayChart');
+  if(log.length === 0){
+    wrap.innerHTML = '<p class="hint">Todavía no hay sesiones registradas.</p>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div style="display:flex; align-items:flex-end; gap:8px; height:120px;">
+      ${counts.map((c,i)=>{
+        const h = Math.max(4, Math.round((c/max)*100));
+        const color = DAY_COLORS[ALL_DAYS[i]] || 'var(--lime)';
+        return `<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
+          <div style="font-size:10px; color:var(--muted); margin-bottom:3px; font-family:'JetBrains Mono',monospace;">${c||''}</div>
+          <div style="width:100%; max-width:26px; height:${h}%; background:${color}; border-radius:5px 5px 2px 2px; opacity:${c?1:.25};"></div>
+          <div style="font-size:10px; color:var(--muted); margin-top:5px;">${DASH_WEEKDAY_LABELS[i]}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderDashMuscleChart(log){
+  const zoneCounts = {};
+  log.forEach(ex=>{
+    const z = classifyMuscleZone(ex);
+    if(z) zoneCounts[z] = (zoneCounts[z]||0) + 1;
+  });
+  const entries = Object.entries(zoneCounts).sort((a,b)=>b[1]-a[1]);
+  const chartWrap = document.getElementById('dashMuscleChart');
+  const subEl = document.getElementById('dashMuscleTopSub');
+  const missingWrap = document.getElementById('dashMissingMuscles');
+
+  if(entries.length === 0){
+    chartWrap.innerHTML = '<p class="hint">Todavía no hay ejercicios clasificados por músculo.</p>';
+    subEl.textContent = '';
+    missingWrap.innerHTML = '<p class="hint">Registrá alguna sesión para ver esto.</p>';
+    return;
+  }
+
+  const [topZone, topCount] = entries[0];
+  subEl.innerHTML = `Tu grupo más trabajado es <b style="color:${ZONE_COLORS[topZone]};">${MUSCLE_LABEL_ES[topZone]||topZone}</b> (${topCount} ejercicio${topCount>1?'s':''})`;
+
+  const max = entries[0][1];
+  chartWrap.innerHTML = entries.map(([zone,count])=>{
+    const color = ZONE_COLORS[zone] || '#C8FF3D';
+    const label = MUSCLE_LABEL_ES[zone] || zone;
+    const pct = Math.max(6, Math.round((count/max)*100));
+    return `
+      <div style="margin-bottom:9px;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:3px;">
+          <span style="font-weight:700;">${label}</span>
+          <span class="hint" style="margin:0;">${count}</span>
+        </div>
+        <div style="background:var(--surface-2); border-radius:6px; height:10px; overflow:hidden;">
+          <div style="width:${pct}%; height:100%; background:${color}; border-radius:6px;"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Músculos que nunca aparecieron trabajados
+  const trainedZones = new Set(entries.map(([z])=>z));
+  const missing = Object.keys(ZONE_COLORS).filter(z => !trainedZones.has(z));
+  if(missing.length === 0){
+    missingWrap.innerHTML = '<p class="hint">🎉 ¡Trabajaste todos los grupos musculares principales al menos una vez!</p>';
+  } else {
+    missingWrap.innerHTML = `<div style="display:flex; gap:8px; flex-wrap:wrap;">
+      ${missing.map(z=>{
+        const color = ZONE_COLORS[z] || '#C8FF3D';
+        return `<span style="background:${color}15; border:1px dashed ${color}; color:${color}; padding:6px 12px; border-radius:999px; font-size:12px; font-weight:700; cursor:pointer;" data-zone="${z}">${MUSCLE_LABEL_ES[z]||z}</span>`;
+      }).join('')}
+    </div>`;
+    missingWrap.querySelectorAll('[data-zone]').forEach(chip=>{
+      chip.onclick = ()=>{
+        showBodyMap();
+        setTimeout(()=> selectZone(chip.dataset.zone), 150);
+      };
+    });
+  }
 }
 
 function renderDashStats(log){
@@ -3356,9 +3468,10 @@ function attachVerticalDragReorder(row, id){
     dragging = false; moved = false;
   }
 
-  row.addEventListener('touchstart', (e)=>{
-    if(e.touches.length !== 1) return;
-    startY = e.touches[0].clientY;
+  row.addEventListener('pointerdown', (e)=>{
+    if(e.pointerType === 'mouse' && e.button !== 0) return; // solo click izquierdo
+    row.setPointerCapture(e.pointerId);
+    startY = e.clientY;
     moved = false;
     row.classList.add('pressing');
     longPressTimer = setTimeout(()=>{
@@ -3369,11 +3482,10 @@ function attachVerticalDragReorder(row, id){
         if(navigator.vibrate) navigator.vibrate(15);
       }
     }, LONG_PRESS_MS);
-  }, {passive:true});
+  });
 
-  row.addEventListener('touchmove', (e)=>{
-    if(e.touches.length !== 1) return;
-    const delta = e.touches[0].clientY - startY;
+  row.addEventListener('pointermove', (e)=>{
+    const delta = e.clientY - startY;
     if(!dragging){
       if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); row.classList.remove('pressing'); }
       return;
@@ -3383,19 +3495,19 @@ function attachVerticalDragReorder(row, id){
     row.style.transform = `translateY(${clamped}px) scale(1.02)`;
     row.classList.toggle('drag-down', delta > 45);
     row.classList.toggle('drag-up', delta < -45);
-  }, {passive:false});
+  });
 
-  row.addEventListener('touchend', (e)=>{
+  row.addEventListener('pointerup', (e)=>{
     row.classList.remove('pressing');
     if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
-    const delta = (e.changedTouches?.[0]?.clientY ?? startY) - startY;
+    const delta = e.clientY - startY;
     const threshold = 50;
     let dir = 0;
     if(delta > threshold) dir = 1;
     else if(delta < -threshold) dir = -1;
     endDrag(dir);
   });
-  row.addEventListener('touchcancel', ()=> endDrag(0));
+  row.addEventListener('pointercancel', ()=> endDrag(0));
 }
 
 
@@ -3492,9 +3604,37 @@ function showUpdateBanner(){
   banner.onclick = ()=> window.location.reload();
 }
 
+function enableCarouselMouseDrag(){
+  const list = document.getElementById('exerciseList');
+  if(!list) return;
+  let isDown = false, startX = 0, startScroll = 0, movedFar = false;
+
+  list.addEventListener('mousedown', (e)=>{
+    // no interferir con clicks en botones, inputs, fotos, etc dentro de la tarjeta
+    if(e.target.closest('input, button, .ex-photo, .exercise-dot')) return;
+    isDown = true; movedFar = false;
+    list.classList.add('mouse-dragging');
+    startX = e.pageX;
+    startScroll = list.scrollLeft;
+  });
+  window.addEventListener('mousemove', (e)=>{
+    if(!isDown) return;
+    const delta = e.pageX - startX;
+    if(Math.abs(delta) > 5) movedFar = true;
+    list.scrollLeft = startScroll - delta;
+  });
+  window.addEventListener('mouseup', ()=>{
+    if(isDown){ isDown = false; list.classList.remove('mouse-dragging'); }
+  });
+  list.addEventListener('click', (e)=>{
+    if(movedFar){ e.preventDefault(); e.stopPropagation(); } // evitar que un arrastre dispare el click de la foto, etc.
+  }, true);
+}
+
 (async function init(){
   await cloudPing();
   initGoogleSignIn();
+  enableCarouselMouseDrag();
   if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/sw.js').then(reg=>{
       // Si aparece una versión nueva, avisar con un botón — nunca recargar solo,
