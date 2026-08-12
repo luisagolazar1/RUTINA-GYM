@@ -166,6 +166,13 @@ input:focus{outline:none; border-color:var(--lime);}
 .exercise.dragging.drag-right{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
 .exercise.dragging.drag-left{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
 .exercise.pressing{ transform:scale(.98); opacity:.85; transition:transform .15s ease, opacity .15s ease; }
+.exercise.just-moved{ animation:justMovedFlash .55s ease; }
+@keyframes justMovedFlash{
+  0%{ background:rgba(200,255,61,.12); border-color:var(--lime); box-shadow:0 0 0 2px rgba(200,255,61,.3); }
+  100%{ background:var(--surface); border-color:var(--line); box-shadow:none; }
+}
+.exercise-dots.dots-pulse .exercise-dot{ animation:dotsPulse .5s ease; }
+@keyframes dotsPulse{ 0%{ transform:scale(1); } 40%{ transform:scale(1.4); } 100%{ transform:scale(1); } }
 
 .exercise{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -402,6 +409,11 @@ input:focus{outline:none; border-color:var(--lime);}
 .editor-row.dragging.drag-down{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
 .editor-row.dragging.drag-up{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
 .editor-row.pressing{ transform:scale(.98); opacity:.85; transition:transform .15s ease, opacity .15s ease; }
+.editor-row.just-moved{ animation:justMovedFlash .5s ease; }
+@keyframes justMovedFlash{
+  0%{ background:rgba(200,255,61,.25); border-color:var(--lime); }
+  100%{ background:var(--surface); border-color:var(--line); }
+}
 
 /* Explorar rutinas de otros usuarios */
 .browse-user-card{
@@ -1315,6 +1327,17 @@ function moveExerciseInSession(key, dir){
   persistRoutine(effectiveUser());
   renderExercises(ROUTINE.filter(e=>e.dia===currentDay)); // re-renderiza sin perder lo ya cargado
   scrollToExercise(key, false); // quedarse viendo el mismo ejercicio que se acaba de mover
+  const movedCard = document.getElementById('card_'+key);
+  if(movedCard){
+    movedCard.classList.add('just-moved');
+    setTimeout(()=> movedCard.classList.remove('just-moved'), 550);
+  }
+  const dotsWrap = document.getElementById('exerciseDots');
+  if(dotsWrap){
+    dotsWrap.classList.add('dots-pulse');
+    setTimeout(()=> dotsWrap.classList.remove('dots-pulse'), 500);
+  }
+  showSync(dir < 0 ? '⬅️ Movido antes' : '➡️ Movido después');
 }
 
 function attachDragReorder(card, key){
@@ -2416,8 +2439,9 @@ function renderEditor(){
     items.forEach((ex, i)=>{
       const img = exerciseImageUrl(ex);
       const row = document.createElement('div');
-      row.className = 'editor-row fade-in-up';
+      row.className = 'editor-row';
       row.style.animationDelay = (i * 40) + 'ms';
+      row.dataset.exId = ex._id;
       row.innerHTML = `
         ${img ? `<img class="editor-thumb" src="${img}">` : '<div class="editor-thumb placeholder"></div>'}
         <div class="editor-info">
@@ -3248,7 +3272,30 @@ function moveExercise(id, dir){
   if(j<0 || j>=ROUTINE.length) return; // ya está en el extremo de ese día
   [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
   persistRoutine(editTargetUser);
+
+  // Capturar posiciones ANTES de re-renderizar, para animar el deslizamiento a la nueva posición (FLIP)
+  const oldRects = new Map();
+  document.querySelectorAll('#editorList .editor-row').forEach(row=>{
+    oldRects.set(row.dataset.exId, row.getBoundingClientRect());
+  });
+
   renderEditor();
+
+  document.querySelectorAll('#editorList .editor-row').forEach(row=>{
+    const oldRect = oldRects.get(row.dataset.exId);
+    if(!oldRect) return;
+    const newRect = row.getBoundingClientRect();
+    const deltaY = oldRect.top - newRect.top;
+    if(Math.abs(deltaY) < 1) return;
+    row.style.transition = 'none';
+    row.style.transform = `translateY(${deltaY}px)`;
+    if(row.dataset.exId === id) row.classList.add('just-moved');
+    requestAnimationFrame(()=>{
+      row.style.transition = 'transform .32s cubic-bezier(.4,0,.2,1)';
+      row.style.transform = '';
+      setTimeout(()=>{ row.style.transition = ''; row.classList.remove('just-moved'); }, 340);
+    });
+  });
 }
 
 function attachVerticalDragReorder(row, id){
