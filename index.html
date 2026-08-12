@@ -152,27 +152,23 @@ input:focus{outline:none; border-color:var(--lime);}
   scroll-snap-align:start; margin:0;
 }
 .exercise-dots{ display:flex; gap:6px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
-.exercise-dot{ width:8px; height:8px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); transition:background .2s, transform .2s; flex:0 0 auto; }
+.exercise-dot{
+  width:8px; height:8px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line);
+  transition:background .2s, transform .2s; flex:0 0 auto; touch-action:pan-y;
+}
 .exercise-dot.active{ background:var(--lime); transform:scale(1.35); }
 .exercise-dot.done{ background:var(--lime-dim); }
-
-/* Reordenar manteniendo presionado y arrastrando */
-#exerciseList.drag-active{ scroll-snap-type:none; }
-.exercise{ touch-action:pan-x; will-change:transform; }
-.exercise.dragging{
-  z-index:5; box-shadow:0 10px 30px rgba(0,0,0,.5); border-color:var(--lime);
-  transition:box-shadow .15s ease, border-color .15s ease;
+.exercise-dot.pressing{ transform:scale(1.6); transition:transform .15s ease; }
+.exercise-dot.dot-dragging{
+  background:var(--lime); box-shadow:0 0 10px 2px rgba(200,255,61,.6);
+  z-index:5; transition:none;
 }
-.exercise.dragging.drag-right{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
-.exercise.dragging.drag-left{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
-.exercise.pressing{ transform:scale(.98); opacity:.85; transition:transform .15s ease, opacity .15s ease; }
+
 .exercise.just-moved{ animation:justMovedFlash .55s ease; }
 @keyframes justMovedFlash{
   0%{ background:rgba(200,255,61,.12); border-color:var(--lime); box-shadow:0 0 0 2px rgba(200,255,61,.3); }
   100%{ background:var(--surface); border-color:var(--line); box-shadow:none; }
 }
-.exercise-dots.dots-pulse .exercise-dot{ animation:dotsPulse .5s ease; }
-@keyframes dotsPulse{ 0%{ transform:scale(1); } 40%{ transform:scale(1.4); } 100%{ transform:scale(1); } }
 
 .exercise{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
@@ -600,7 +596,7 @@ select{
       <div class="progress-ring-wrap"><span id="dayProgress">0/0 completados</span></div>
     </div>
     <p class="hint" style="margin-top:-8px; margin-bottom:4px;">💡 Lo que edites o agregues acá queda como el nuevo objetivo para la próxima vez que entrenes este día.</p>
-    <p class="hint" style="margin-top:0; margin-bottom:10px;">✋ Mantené presionado un ejercicio y arrastrá para reordenarlo.</p>
+    <p class="hint" style="margin-top:0; margin-bottom:10px;">✋ Mantené presionado un puntito (▼) y arrastrá para reordenar los ejercicios.</p>
     <div id="exerciseDots" class="exercise-dots"></div>
     <div id="exerciseList"></div>
   </div>
@@ -1269,7 +1265,6 @@ function renderExercises(items){
     buildTally(key, sets.length);
     document.getElementById('chk_'+key).onclick = ()=> toggleDone(key);
     document.getElementById('addset_'+key).onclick = ()=> addSet(key);
-    attachDragReorder(card, key);
   });
   renderExerciseDots();
   if('IntersectionObserver' in window) observeExerciseScroll();
@@ -1285,6 +1280,7 @@ function renderExerciseDots(){
     dot.className = 'exercise-dot' + (i===0 ? ' active' : '') + (sessionState[key]?.done ? ' done' : '');
     dot.dataset.key = key;
     dot.onclick = ()=> scrollToExercise(key);
+    attachDotDragReorder(dot, key);
     dotsWrap.appendChild(dot);
   });
 }
@@ -1318,89 +1314,133 @@ function scrollToNextExercise(fromKey){
 
 function moveExerciseInSession(key, dir){
   const idx = ROUTINE.findIndex(e=>e._id===key);
-  if(idx === -1) return;
+  if(idx === -1) return false;
   const day = ROUTINE[idx].dia;
   let j = idx + dir;
   while(j>=0 && j<ROUTINE.length && ROUTINE[j].dia !== day) j += dir;
-  if(j<0 || j>=ROUTINE.length) return; // ya está en el extremo de ese día
+  if(j<0 || j>=ROUTINE.length) return false; // ya está en el extremo de ese día
   [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
   persistRoutine(effectiveUser());
   renderExercises(ROUTINE.filter(e=>e.dia===currentDay)); // re-renderiza sin perder lo ya cargado
   scrollToExercise(key, false); // quedarse viendo el mismo ejercicio que se acaba de mover
-  const movedCard = document.getElementById('card_'+key);
-  if(movedCard){
-    movedCard.classList.add('just-moved');
-    setTimeout(()=> movedCard.classList.remove('just-moved'), 550);
-  }
-  const dotsWrap = document.getElementById('exerciseDots');
-  if(dotsWrap){
-    dotsWrap.classList.add('dots-pulse');
-    setTimeout(()=> dotsWrap.classList.remove('dots-pulse'), 500);
-  }
-  showSync(dir < 0 ? '⬅️ Movido antes' : '➡️ Movido después');
+  return true;
 }
 
-function attachDragReorder(card, key){
-  const LONG_PRESS_MS = 350;
+// Durante el arrastre del puntito: intercambia posiciones SIN recrear el DOM,
+// para no perder la referencia al puntito que el dedo está siguiendo.
+function swapDotLive(draggedKey, dir){
+  const routineIdx = ROUTINE.findIndex(e=>e._id===draggedKey);
+  if(routineIdx === -1) return false;
+  const day = ROUTINE[routineIdx].dia;
+  let rj = routineIdx + dir;
+  while(rj>=0 && rj<ROUTINE.length && ROUTINE[rj].dia !== day) rj += dir;
+  if(rj<0 || rj>=ROUTINE.length) return false;
+  [ROUTINE[routineIdx], ROUTINE[rj]] = [ROUTINE[rj], ROUTINE[routineIdx]];
+  persistRoutine(effectiveUser());
+
+  const idx = currentExerciseOrder.indexOf(draggedKey);
+  const j = idx + dir;
+  if(j<0 || j>=currentExerciseOrder.length) return false;
+  const otherKey = currentExerciseOrder[j];
+  [currentExerciseOrder[idx], currentExerciseOrder[j]] = [currentExerciseOrder[j], currentExerciseOrder[idx]];
+
+  const dotsWrap = document.getElementById('exerciseDots');
+  const draggedDot = dotsWrap?.querySelector(`[data-key="${draggedKey}"]`);
+  const otherDot = dotsWrap?.querySelector(`[data-key="${otherKey}"]`);
+  if(draggedDot && otherDot){
+    const oldRect = otherDot.getBoundingClientRect();
+    if(dir > 0) dotsWrap.insertBefore(otherDot, draggedDot);
+    else dotsWrap.insertBefore(otherDot, draggedDot.nextSibling);
+    const newRect = otherDot.getBoundingClientRect();
+    const dx = oldRect.left - newRect.left;
+    otherDot.style.transition = 'none';
+    otherDot.style.transform = `translateX(${dx}px)`;
+    requestAnimationFrame(()=>{
+      otherDot.style.transition = 'transform .22s cubic-bezier(.4,0,.2,1)';
+      otherDot.style.transform = '';
+    });
+  }
+  return true;
+}
+
+function finishDotDragReorder(key, hadSteps){
+  renderExercises(ROUTINE.filter(e=>e.dia===currentDay));
+  scrollToExercise(key, false);
+  if(hadSteps){
+    const movedCard = document.getElementById('card_'+key);
+    if(movedCard){
+      movedCard.classList.add('just-moved');
+      setTimeout(()=> movedCard.classList.remove('just-moved'), 550);
+    }
+    showSync('↔️ Ejercicio reordenado');
+  }
+}
+
+function attachDotDragReorder(dot, key){
+  const LONG_PRESS_MS = 320;
   const MOVE_CANCEL_PX = 20;
   let startX = 0, longPressTimer = null, dragging = false, moved = false;
+  let stepPx = 0, stepsMoved = 0;
 
-  function endDrag(commitDir){
-    clearTimeout(longPressTimer);
-    card.classList.remove('pressing');
-    if(dragging){
-      const list = document.getElementById('exerciseList');
-      list.classList.remove('drag-active');
-      card.classList.remove('dragging');
-      card.style.transition = 'transform .25s cubic-bezier(.34,1.56,.64,1)';
-      card.style.transform = '';
-      setTimeout(()=>{ card.style.transition = ''; }, 260);
-      if(commitDir) moveExerciseInSession(key, commitDir);
-    }
-    dragging = false; moved = false;
+  function computeStepPx(){
+    const dots = document.querySelectorAll('#exerciseDots .exercise-dot');
+    if(dots.length < 2) return 22;
+    const r0 = dots[0].getBoundingClientRect();
+    const r1 = dots[1].getBoundingClientRect();
+    return Math.max(16, r1.left - r0.left);
   }
 
-  card.addEventListener('touchstart', (e)=>{
+  function endDrag(){
+    clearTimeout(longPressTimer);
+    dot.classList.remove('pressing');
+    if(dragging){
+      dot.classList.remove('dot-dragging');
+      dot.style.transition = 'transform .2s cubic-bezier(.34,1.56,.64,1)';
+      dot.style.transform = '';
+      setTimeout(()=>{ dot.style.transition = ''; }, 220);
+      finishDotDragReorder(key, stepsMoved !== 0);
+    }
+    dragging = false; moved = false; stepsMoved = 0;
+  }
+
+  dot.addEventListener('touchstart', (e)=>{
     if(e.touches.length !== 1) return;
     startX = e.touches[0].clientX;
-    moved = false;
-    card.classList.add('pressing');
+    moved = false; stepsMoved = 0;
+    dot.classList.add('pressing');
     longPressTimer = setTimeout(()=>{
       if(!moved){
         dragging = true;
-        card.classList.remove('pressing');
-        card.classList.add('dragging');
-        document.getElementById('exerciseList').classList.add('drag-active');
+        stepPx = computeStepPx();
+        dot.classList.remove('pressing');
+        dot.classList.add('dot-dragging');
         if(navigator.vibrate) navigator.vibrate(15);
       }
     }, LONG_PRESS_MS);
   }, {passive:true});
 
-  card.addEventListener('touchmove', (e)=>{
+  dot.addEventListener('touchmove', (e)=>{
     if(e.touches.length !== 1) return;
-    const delta = e.touches[0].clientX - startX;
+    const rawDelta = e.touches[0].clientX - startX;
     if(!dragging){
-      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); card.classList.remove('pressing'); }
+      if(Math.abs(rawDelta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); dot.classList.remove('pressing'); }
       return;
     }
     e.preventDefault();
-    const clamped = Math.max(-140, Math.min(140, delta));
-    card.style.transform = `translateX(${clamped}px) scale(1.03)`;
-    card.classList.toggle('drag-right', delta > 60);
-    card.classList.toggle('drag-left', delta < -60);
+    const offset = rawDelta - (stepsMoved * stepPx);
+    dot.style.transform = `translateX(${offset}px) scale(1.7)`;
+    // ¿Se cruzó el umbral para mover una posición más (permite arrastrar varios puestos seguidos)?
+    if(Math.abs(offset) > stepPx * 0.65){
+      const dir = offset > 0 ? 1 : -1;
+      if(swapDotLive(key, dir)){
+        stepsMoved += dir;
+        if(navigator.vibrate) navigator.vibrate(8);
+      }
+    }
   }, {passive:false});
 
-  card.addEventListener('touchend', (e)=>{
-    card.classList.remove('pressing');
-    if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
-    const delta = (e.changedTouches?.[0]?.clientX ?? startX) - startX;
-    const threshold = 70;
-    let dir = 0;
-    if(delta > threshold) dir = -1; // arrastrar a la derecha = traerlo antes (posición anterior)
-    else if(delta < -threshold) dir = 1; // arrastrar a la izquierda = mandarlo después
-    endDrag(dir);
-  });
-  card.addEventListener('touchcancel', ()=> endDrag(0));
+  dot.addEventListener('touchend', endDrag);
+  dot.addEventListener('touchcancel', endDrag);
 }
 
 function renderSetsList(key){
