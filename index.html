@@ -156,6 +156,16 @@ input:focus{outline:none; border-color:var(--lime);}
 .exercise-dot.active{ background:var(--lime); transform:scale(1.35); }
 .exercise-dot.done{ background:var(--lime-dim); }
 
+/* Reordenar manteniendo presionado y arrastrando */
+#exerciseList.drag-active{ scroll-snap-type:none; }
+.exercise{ touch-action:pan-x; will-change:transform; }
+.exercise.dragging{
+  z-index:5; box-shadow:0 10px 30px rgba(0,0,0,.5); border-color:var(--lime);
+  transition:box-shadow .15s ease, border-color .15s ease;
+}
+.exercise.dragging.drag-right{ border-color:#4DD9FF; box-shadow:0 10px 30px rgba(77,217,255,.35); }
+.exercise.dragging.drag-left{ border-color:#FF9F40; box-shadow:0 10px 30px rgba(255,159,64,.35); }
+
 .exercise{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
   padding:14px 16px; margin-bottom:10px; transition:padding .35s ease, border-color .3s ease, background .3s ease;
@@ -569,7 +579,8 @@ select{
       </div>
       <div class="progress-ring-wrap"><span id="dayProgress">0/0 completados</span></div>
     </div>
-    <p class="hint" style="margin-top:-8px; margin-bottom:10px;">💡 Lo que edites o agregues acá queda como el nuevo objetivo para la próxima vez que entrenes este día.</p>
+    <p class="hint" style="margin-top:-8px; margin-bottom:4px;">💡 Lo que edites o agregues acá queda como el nuevo objetivo para la próxima vez que entrenes este día.</p>
+    <p class="hint" style="margin-top:0; margin-bottom:10px;">✋ Mantené presionado un ejercicio y arrastrá para reordenarlo.</p>
     <div id="exerciseDots" class="exercise-dots"></div>
     <div id="exerciseList"></div>
   </div>
@@ -1243,6 +1254,7 @@ function renderExercises(items){
     document.getElementById('addset_'+key).onclick = ()=> addSet(key);
     card.querySelector('[data-act="up"]').onclick = ()=> moveExerciseInSession(key, -1);
     card.querySelector('[data-act="down"]').onclick = ()=> moveExerciseInSession(key, 1);
+    attachDragReorder(card, key);
   });
   renderExerciseDots();
   if('IntersectionObserver' in window) observeExerciseScroll();
@@ -1279,9 +1291,9 @@ function observeExerciseScroll(){
   document.querySelectorAll('#exerciseList .exercise').forEach(card=>exerciseScrollObserver.observe(card));
 }
 
-function scrollToExercise(key){
+function scrollToExercise(key, smooth=true){
   const card = document.getElementById('card_'+key);
-  if(card) card.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+  if(card) card.scrollIntoView({behavior: smooth?'smooth':'instant', inline:'center', block:'nearest'});
 }
 function scrollToNextExercise(fromKey){
   const idx = currentExerciseOrder.indexOf(fromKey);
@@ -1299,6 +1311,66 @@ function moveExerciseInSession(key, dir){
   [ROUTINE[idx], ROUTINE[j]] = [ROUTINE[j], ROUTINE[idx]];
   persistRoutine(effectiveUser());
   renderExercises(ROUTINE.filter(e=>e.dia===currentDay)); // re-renderiza sin perder lo ya cargado
+  scrollToExercise(key, false); // quedarse viendo el mismo ejercicio que se acaba de mover
+}
+
+function attachDragReorder(card, key){
+  const LONG_PRESS_MS = 380;
+  const MOVE_CANCEL_PX = 10;
+  let startX = 0, longPressTimer = null, dragging = false, moved = false;
+
+  function endDrag(commitDir){
+    clearTimeout(longPressTimer);
+    if(dragging){
+      const list = document.getElementById('exerciseList');
+      list.classList.remove('drag-active');
+      card.classList.remove('dragging');
+      card.style.transition = 'transform .25s cubic-bezier(.34,1.56,.64,1)';
+      card.style.transform = '';
+      setTimeout(()=>{ card.style.transition = ''; }, 260);
+      if(commitDir) moveExerciseInSession(key, commitDir);
+    }
+    dragging = false; moved = false;
+  }
+
+  card.addEventListener('touchstart', (e)=>{
+    if(e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+    moved = false;
+    longPressTimer = setTimeout(()=>{
+      if(!moved){
+        dragging = true;
+        card.classList.add('dragging');
+        document.getElementById('exerciseList').classList.add('drag-active');
+        if(navigator.vibrate) navigator.vibrate(15);
+      }
+    }, LONG_PRESS_MS);
+  }, {passive:true});
+
+  card.addEventListener('touchmove', (e)=>{
+    if(e.touches.length !== 1) return;
+    const delta = e.touches[0].clientX - startX;
+    if(!dragging){
+      if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); }
+      return;
+    }
+    e.preventDefault();
+    const clamped = Math.max(-140, Math.min(140, delta));
+    card.style.transform = `translateX(${clamped}px) scale(1.03)`;
+    card.classList.toggle('drag-right', delta > 60);
+    card.classList.toggle('drag-left', delta < -60);
+  }, {passive:false});
+
+  card.addEventListener('touchend', (e)=>{
+    if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
+    const delta = (e.changedTouches?.[0]?.clientX ?? startX) - startX;
+    const threshold = 70;
+    let dir = 0;
+    if(delta > threshold) dir = -1; // arrastrar a la derecha = traerlo antes (posición anterior)
+    else if(delta < -threshold) dir = 1; // arrastrar a la izquierda = mandarlo después
+    endDrag(dir);
+  });
+  card.addEventListener('touchcancel', ()=> endDrag(0));
 }
 
 function renderSetsList(key){
