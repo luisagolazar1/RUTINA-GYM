@@ -142,6 +142,20 @@ input:focus{outline:none; border-color:var(--lime);}
   font-size:11px; text-transform:uppercase; letter-spacing:1.5px; color:var(--lime-dim);
   margin-bottom:8px; font-weight:700;
 }
+#exerciseList{
+  display:flex; overflow-x:auto; scroll-snap-type:x mandatory;
+  gap:12px; margin:0 -18px; padding:0 18px 8px;
+  scroll-behavior:smooth; -webkit-overflow-scrolling:touch;
+}
+#exerciseList::-webkit-scrollbar{ display:none; }
+#exerciseList .exercise{
+  flex:0 0 calc(100% - 36px); scroll-snap-align:center; margin-bottom:0;
+}
+.exercise-dots{ display:flex; gap:6px; justify-content:center; margin-bottom:14px; flex-wrap:wrap; }
+.exercise-dot{ width:8px; height:8px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); transition:background .2s, transform .2s; flex:0 0 auto; }
+.exercise-dot.active{ background:var(--lime); transform:scale(1.35); }
+.exercise-dot.done{ background:var(--lime-dim); }
+
 .exercise{
   background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
   padding:14px 16px; margin-bottom:10px; transition:padding .35s ease, border-color .3s ease, background .3s ease;
@@ -555,7 +569,8 @@ select{
       </div>
       <div class="progress-ring-wrap"><span id="dayProgress">0/0 completados</span></div>
     </div>
-    <p class="hint" style="margin-top:-8px; margin-bottom:14px;">💡 Lo que edites o agregues acá queda como el nuevo objetivo para la próxima vez que entrenes este día.</p>
+    <p class="hint" style="margin-top:-8px; margin-bottom:10px;">💡 Lo que edites o agregues acá queda como el nuevo objetivo para la próxima vez que entrenes este día.</p>
+    <div id="exerciseDots" class="exercise-dots"></div>
     <div id="exerciseList"></div>
   </div>
 
@@ -1162,12 +1177,16 @@ function groupBy(items, key){
   return g;
 }
 
+let currentExerciseOrder = []; // keys en el orden visual actual, para saber cuál sigue
+
 function renderExercises(items){
   const list = document.getElementById('exerciseList');
   list.innerHTML = '';
+  currentExerciseOrder = [];
   items.forEach((ex, cardIndex)=>{
     const idx = ROUTINE.indexOf(ex);
     const key = exKey(ex, idx);
+    currentExerciseOrder.push(key);
     // Si ya había estado cargado para este ejercicio (ej: al reordenar), no lo pisa
     if(!sessionState[key]){
       const sets = (Array.isArray(ex.sets) && ex.sets.length)
@@ -1225,6 +1244,49 @@ function renderExercises(items){
     card.querySelector('[data-act="up"]').onclick = ()=> moveExerciseInSession(key, -1);
     card.querySelector('[data-act="down"]').onclick = ()=> moveExerciseInSession(key, 1);
   });
+  renderExerciseDots();
+  if('IntersectionObserver' in window) observeExerciseScroll();
+}
+
+function renderExerciseDots(){
+  const dotsWrap = document.getElementById('exerciseDots');
+  dotsWrap.innerHTML = '';
+  if(currentExerciseOrder.length <= 1){ dotsWrap.style.display = 'none'; return; }
+  dotsWrap.style.display = 'flex';
+  currentExerciseOrder.forEach((key, i)=>{
+    const dot = document.createElement('div');
+    dot.className = 'exercise-dot' + (i===0 ? ' active' : '') + (sessionState[key]?.done ? ' done' : '');
+    dot.dataset.key = key;
+    dot.onclick = ()=> scrollToExercise(key);
+    dotsWrap.appendChild(dot);
+  });
+}
+
+let exerciseScrollObserver = null;
+function observeExerciseScroll(){
+  if(exerciseScrollObserver) exerciseScrollObserver.disconnect();
+  const list = document.getElementById('exerciseList');
+  exerciseScrollObserver = new IntersectionObserver((entries)=>{
+    entries.forEach(entry=>{
+      if(entry.isIntersecting && entry.intersectionRatio > 0.6){
+        const key = entry.target.id.replace('card_','');
+        document.querySelectorAll('.exercise-dot').forEach(d=>{
+          d.classList.toggle('active', d.dataset.key === key);
+        });
+      }
+    });
+  }, {root:list, threshold:[0.6]});
+  document.querySelectorAll('#exerciseList .exercise').forEach(card=>exerciseScrollObserver.observe(card));
+}
+
+function scrollToExercise(key){
+  const card = document.getElementById('card_'+key);
+  if(card) card.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+}
+function scrollToNextExercise(fromKey){
+  const idx = currentExerciseOrder.indexOf(fromKey);
+  const nextKey = currentExerciseOrder[idx+1];
+  if(nextKey) setTimeout(()=> scrollToExercise(nextKey), 450);
 }
 
 function moveExerciseInSession(key, dir){
@@ -1300,8 +1362,11 @@ function toggleDone(key){
     const summary = sets.map(s=>`${s.reps}×${s.peso}kg`).join(' · ');
     document.getElementById('donesum_'+key).textContent = '✓ ' + summary;
   }
+  const dot = document.querySelector(`.exercise-dot[data-key="${key}"]`);
+  if(dot) dot.classList.toggle('done', done);
   buildTally(key, sessionState[key].sets.length);
   updateProgress();
+  if(done) scrollToNextExercise(key);
 }
 
 function updateProgress(){
