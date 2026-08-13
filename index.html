@@ -792,7 +792,7 @@ select{
 
   <div class="muscle-detail-card" style="margin-bottom:16px;">
     <div class="muscle-detail-title" style="font-size:18px; margin-bottom:2px;">📊 Ejercicios por día de la semana</div>
-    <div class="muscle-detail-sub" style="margin-bottom:12px;">Cantidad total registrada, según el historial</div>
+    <div class="muscle-detail-sub" style="margin-bottom:12px;">Según el día de tu rutina (no la fecha real en que guardaste)</div>
     <div id="dashWeekdayChart"></div>
   </div>
 
@@ -2965,9 +2965,8 @@ const DASH_WEEKDAY_LABELS = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 function renderDashWeekdayChart(log){
   const counts = [0,0,0,0,0,0,0]; // lunes=0 ... domingo=6
   log.forEach(e=>{
-    const d = new Date(e.fecha);
-    const idx = (d.getDay()+6)%7;
-    counts[idx]++;
+    const idx = ALL_DAYS.indexOf(e.dia); // día de la RUTINA (LUN..DOM), no la fecha real de guardado
+    if(idx !== -1) counts[idx]++;
   });
   const max = Math.max(...counts, 1);
   const wrap = document.getElementById('dashWeekdayChart');
