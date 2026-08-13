@@ -399,7 +399,13 @@ input:focus{outline:none; border-color:var(--lime);}
 .editor-btn.danger{color:var(--red); border-color:var(--red);}
 
 /* Reordenar en el editor: mantener presionado y arrastrar verticalmente */
-.editor-row{ touch-action:pan-y; will-change:transform; }
+.editor-row{ touch-action:auto; will-change:transform; }
+.drag-handle{
+  flex:0 0 auto; width:28px; height:40px; display:flex; align-items:center; justify-content:center;
+  color:var(--muted); font-size:18px; cursor:grab; touch-action:none; letter-spacing:-2px;
+  border-radius:6px;
+}
+.drag-handle:active{ color:var(--lime); background:rgba(200,255,61,.1); cursor:grabbing; }
 .editor-row.dragging{
   z-index:5; box-shadow:0 10px 30px rgba(0,0,0,.5); border-color:var(--lime);
   transition:box-shadow .15s ease, border-color .15s ease;
@@ -2504,6 +2510,7 @@ function renderEditor(){
       row.style.animationDelay = (i * 40) + 'ms';
       row.dataset.exId = ex._id;
       row.innerHTML = `
+        <div class="drag-handle" title="Mantené presionado y arrastrá para reordenar">⠿</div>
         ${img ? `<img class="editor-thumb" src="${img}">` : '<div class="editor-thumb placeholder"></div>'}
         <div class="editor-info">
           <div class="editor-name">${ex.ejercicio}${ex.superserieId ? ' <span style="color:#FF9F40;font-size:11px;">🔗</span>' : ''}</div>
@@ -2514,7 +2521,7 @@ function renderEditor(){
       `;
       row.querySelector('[data-act="edit"]').onclick = ()=> openExerciseForm(ex._id);
       row.querySelector('[data-act="del"]').onclick = ()=> deleteExercise(ex._id);
-      attachVerticalDragReorder(row, ex._id);
+      attachVerticalDragReorder(row, ex._id, row.querySelector('.drag-handle'));
       sec.appendChild(row);
     });
     const addBtn = document.createElement('button');
@@ -3449,7 +3456,8 @@ function moveExercise(id, dir){
   });
 }
 
-function attachVerticalDragReorder(row, id){
+function attachVerticalDragReorder(row, id, handle){
+  const target = handle || row;
   const LONG_PRESS_MS = 350;
   const MOVE_CANCEL_PX = 20;
   let startY = 0, longPressTimer = null, dragging = false, moved = false;
@@ -3467,9 +3475,9 @@ function attachVerticalDragReorder(row, id){
     dragging = false; moved = false;
   }
 
-  row.addEventListener('pointerdown', (e)=>{
+  target.addEventListener('pointerdown', (e)=>{
     if(e.pointerType === 'mouse' && e.button !== 0) return; // solo click izquierdo
-    row.setPointerCapture(e.pointerId);
+    target.setPointerCapture(e.pointerId);
     startY = e.clientY;
     moved = false;
     row.classList.add('pressing');
@@ -3483,7 +3491,7 @@ function attachVerticalDragReorder(row, id){
     }, LONG_PRESS_MS);
   });
 
-  row.addEventListener('pointermove', (e)=>{
+  target.addEventListener('pointermove', (e)=>{
     const delta = e.clientY - startY;
     if(!dragging){
       if(Math.abs(delta) > MOVE_CANCEL_PX){ moved = true; clearTimeout(longPressTimer); row.classList.remove('pressing'); }
@@ -3496,7 +3504,7 @@ function attachVerticalDragReorder(row, id){
     row.classList.toggle('drag-up', delta < -45);
   });
 
-  row.addEventListener('pointerup', (e)=>{
+  target.addEventListener('pointerup', (e)=>{
     row.classList.remove('pressing');
     if(!dragging){ clearTimeout(longPressTimer); moved = false; return; }
     const delta = e.clientY - startY;
@@ -3506,7 +3514,7 @@ function attachVerticalDragReorder(row, id){
     else if(delta < -threshold) dir = -1;
     endDrag(dir);
   });
-  row.addEventListener('pointercancel', ()=> endDrag(0));
+  target.addEventListener('pointercancel', ()=> endDrag(0));
 }
 
 
@@ -3670,6 +3678,29 @@ function enableCarouselMouseDrag(){
   window.addEventListener('online', handleReconnect);
   window.addEventListener('offline', updateOfflineBanner);
   updateOfflineBanner();
+
+  // Al volver a la app (cambiar de pestaña/app y regresar), traer los cambios hechos desde otro dispositivo.
+  document.addEventListener('visibilitychange', async ()=>{
+    if(document.visibilityState !== 'visible') return;
+    if(!currentUser || document.getElementById('appWrap').style.display === 'none') return;
+    await cloudPing();
+    if(!CLOUD_AVAILABLE) return;
+    const user = effectiveUser();
+    const onEntreno = document.getElementById('entrenoScreen').classList.contains('active');
+    if(onEntreno){
+      // No pisar una sesión que se esté cargando en este momento: solo refrescar los datos
+      // en segundo plano (log, peso corporal) para que estén al día la próxima vez que se usen.
+      const freshLog = await cloudPull(user);
+      if(freshLog) saveLog(user, freshLog);
+    } else {
+      ACTIVE_DAYS = await fetchActiveDaysFor(user);
+      await loadRoutine(user);
+      const freshLog = await cloudPull(user);
+      if(freshLog) saveLog(user, freshLog);
+      if(document.getElementById('dashboardScreen').classList.contains('active')) renderDashboard();
+      if(document.getElementById('editorScreen').classList.contains('active')) renderEditor();
+    }
+  });
 })();
 </script>
 </body>
