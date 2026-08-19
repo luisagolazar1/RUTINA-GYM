@@ -1178,7 +1178,11 @@ async function persistActiveDays(user, days){
   }catch(e){ showSync('Sin conexión, no se guardó'); }
 }
 
+let appAlreadyEntered = false;
+
 async function enterApp(){
+  const isReentry = appAlreadyEntered;
+
   document.getElementById('pillName').textContent = currentUserName;
   document.getElementById('pillAvatar').innerHTML = currentUserPicture
     ? `<img src="${currentUserPicture}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`
@@ -1186,6 +1190,16 @@ async function enterApp(){
   document.getElementById('loginScreen').classList.remove('active');
   document.getElementById('appWrap').style.display = 'block';
   document.getElementById('userModalBg').classList.remove('show');
+
+  if(isReentry){
+    // Google puede re-autenticar en silencio (One Tap) mientras la app sigue abierta.
+    // Si eso pasa a mitad de una sesión, NO hay que reiniciar el día ni borrar lo que
+    // el usuario ya venía cargando — solo refrescar el historial en segundo plano.
+    const cloudEntries = await cloudPull(currentUser);
+    if(cloudEntries) saveLog(currentUser, cloudEntries);
+    return;
+  }
+  appAlreadyEntered = true;
 
   const cloudEntries = await cloudPull(currentUser);
   if(cloudEntries) saveLog(currentUser, cloudEntries);
@@ -1650,8 +1664,13 @@ function showHistory(){
     const statLine = Array.isArray(e.sets) && e.sets.length
       ? e.sets.map(s=>`${s.reps}×${s.peso}kg`).join('  ·  ')
       : `${e.series}×${e.rep} · ${e.peso} kg`;
+    const realWeekday = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d.getDay()];
+    const rutinaDayName = DAY_NAMES[e.dia] || e.dia;
+    const dateLabel = rutinaDayName === realWeekday
+      ? `${d.toLocaleDateString('es-AR')} · ${rutinaDayName}`
+      : `${d.toLocaleDateString('es-AR')} (${realWeekday}) · Rutina de ${rutinaDayName}`;
     item.innerHTML = `
-      <div class="top"><span>${d.toLocaleDateString('es-AR')} · ${DAY_NAMES[e.dia]||e.dia}</span><span>${e.estado}</span></div>
+      <div class="top"><span>${dateLabel}</span><span>${e.estado}</span></div>
       <div class="ex">${e.ejercicio}</div>
       <div class="stat">${statLine}</div>
     `;
